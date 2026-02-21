@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>📊 Admin Panel</h1>
+<a href="index.html">Back</a>
+
+<p>Total Saved Resources:</p>
+<h2 id="count"></h2>
+
+<script>
+const bookmarks = JSON.parse(localStorage.getItem("bookmarks")) || [];
+document.getElementById("count").innerText = bookmarks.length;
+</script>
+
+</body>
+</html>

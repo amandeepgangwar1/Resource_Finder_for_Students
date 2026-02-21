@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Register</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="auth-page">
+
+<div class="card auth-card">
+
+<h2>Register</h2>
+
+<form id="registerForm">
+  <input type="text" id="name" placeholder="Name" required><br><br>
+  <input type="email" id="email" placeholder="Email" required><br><br>
+  <input type="password" id="password" placeholder="Password" required><br><br>
+  <button type="submit">Register</button>
+</form>
+
+<p id="message"></p>
+
+<p>Already have an account? <a href="login.html">Login</a></p>
+
+</div>
+
+<script>
+document.getElementById("registerForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+
+  const name = document.getElementById("name").value;
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  const res = await fetch("/api/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, email, password })
+  });
+
+  const data = await res.json();
+
+  if (res.ok) {
+    alert("Registration Successful!");
+    window.location.href = "login.html";
+  } else {
+    document.getElementById("message").innerText = data.message;
+  }
+});
+</script>
+
+</body>
+</html>

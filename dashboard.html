@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>⭐ My Saved Resources</h1>
+<a href="index.html">Back</a>
+
+<ul id="savedList"></ul>
+
+<script>
+const saved = JSON.parse(localStorage.getItem("bookmarks")) || [];
+const list = document.getElementById("savedList");
+
+saved.forEach(item => {
+    const li = document.createElement("li");
+    li.innerHTML = `<a href="${item.link}" target="_blank">${item.title}</a>`;
+    list.appendChild(li);
+});
+</script>
+
+</body>
+</html>

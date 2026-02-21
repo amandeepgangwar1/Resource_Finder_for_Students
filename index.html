@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Resource Finder</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h1>📚 Student Resource Finder</h1>
+
+    <!-- Navigation -->
+    <div>
+        <a href="login.html">Login</a> |
+        <a href="register.html">Register</a> |
+        <a href="dashboard.html">Dashboard</a> |
+        <a href="admin.html">Admin</a>
+
+    </div>
+
+    <hr>
+
+    <!-- 🔍 Smart Search Section -->
+    <h2>Search Study Resources</h2>
+
+    <input 
+        type="text" 
+        id="searchInput" 
+        placeholder="Search topic (From the Web)"
+    >
+    
+    <button onclick="searchResource()">Search</button>
+
+    <p>
+        This search includes:
+        📘 Open Library Textbooks |
+        🎥 YouTube Tutorials |
+        🎓 Coursera Courses |
+        📄 CORE Research Papers
+    </p>
+
+    <hr>
+
+    <!-- Results Area -->
+    <h2>Results</h2>
+    <ul id="results"></ul>
+
+    <hr>
+
+    <!-- 📤 Upload Local PDF Section -->
+    <h2>Upload Your Own PDF</h2>
+
+    <form id="uploadForm" enctype="multipart/form-data">
+        <label>Title:</label><br>
+        <input type="text" name="title" required><br><br>
+
+        <label>Subject:</label><br>
+        <input type="text" name="subject" required><br><br>
+
+        <label>Select PDF:</label><br>
+        <input type="file" name="pdf" accept=".pdf" required><br><br>
+
+        <button type="submit">Upload</button>
+    </form>
+
+    <hr>
+
+    <!-- Footer -->
+    <p id="footer">
+        © 2026 Student Resource Finder Platform by Amandeep Gangwar
+    </p>
+
+    <!-- Script -->
+    <script src="script.js"></script>
+
+</body>
+</html>

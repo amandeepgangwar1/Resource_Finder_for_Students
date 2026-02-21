@@ -1,0 +1,132 @@
+/* =========================
+   GENERAL PAGE STYLING
+========================= */
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 40px;
+    background-color: beige;
+}
+
+/* =========================
+   HEADINGS
+========================= */
+h1, h2 {
+    color: #2c3e50;
+}
+
+/* =========================
+   CARD STYLE (FOR FORMS)
+========================= */
+.card {
+    background-color: aliceblue;
+    padding: 20px;
+    border-radius: 8px;
+    width: 350px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    margin-bottom: 20px;
+}
+
+/* =========================
+   INPUT FIELDS
+========================= */
+input {
+    padding: 8px;
+    width: 70%;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    background: whitesmoke;
+    outline: none;
+}
+
+input:focus {
+    border-color: #3498db;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+button {
+    padding: 8px 12px;
+    margin-left: 5px;
+    margin-top: 5px;
+    cursor: pointer;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: 0.2s ease;
+}
+
+button:hover {
+    background-color: #c0392b;
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+/* =========================
+   RESULT LIST
+========================= */
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+li {
+    background: aliceblue;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* =========================
+   LINKS
+========================= */
+a {
+    text-decoration: none;
+    color: #2980b9;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* =========================
+   NAVIGATION LINKS
+========================= */
+div a {
+    font-weight: bold;
+}
+
+/* =========================
+   AUTH PAGE CENTERING
+========================= */
+
+.auth-page {
+    height: 100vh;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: beige; /* matches your theme */
+}
+
+/* Make auth card slightly bigger */
+.auth-card {
+    width: 380px;
+    text-align: center;
+}
+
+/* Full width button in auth */
+.auth-card button {
+    width: 80%;
+}
+
+/* Center message text */
+#message {
+    margin-top: 10px;
+    color: red;
+}

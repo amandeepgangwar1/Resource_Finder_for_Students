@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Login</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="auth-page">
+
+<div class="card auth-card">
+
+<h2>Login</h2>
+
+<form id="loginForm">
+  <input type="email" id="email" placeholder="Email" required><br><br>
+  <input type="password" id="password" placeholder="Password" required><br><br>
+  <button type="submit">Login</button>
+</form>
+
+<p id="message"></p>
+
+<p>Don't have an account? <a href="register.html">Register</a></p>
+
+</div>
+
+<script>
+const API = "/api";
+
+document.getElementById("loginForm").addEventListener("submit", async e => {
+  e.preventDefault();
+
+  const res = await fetch(`${API}/auth/login`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      email: email.value,
+      password: password.value
+    })
+  });
+
+  const data = await res.json();
+
+  if(res.ok){
+    localStorage.setItem("token", data.token);
+    window.location.href = "index.html";
+  } else {
+    message.innerText = data.message;
+  }
+});
+</script>
+
+</body>
+</html>

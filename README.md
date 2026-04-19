@@ -36,12 +36,12 @@
 
 ---
 
-## 🖼️ Demo Screenshots (Mock UI)
-
-> These are **demo visuals** to represent the UI (you can replace later)
+## 🖼️ Demo Screenshots
 
 ### 🏠 Home Page
-![Home](https://images.unsplash.com/photo-1581091215367-59ab6b4a4b6a)
+<p align="center">
+  <img src="home.png" width="100%" />
+</p>
 
 ### 🔐 Login Page
 ![Login](https://images.unsplash.com/photo-1555949963-aa79dcee981c)

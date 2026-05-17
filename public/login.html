@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="auth-page">
+
+<div class="card auth-card">
+
+<p class="eyebrow">Account</p>
+<h2>Login</h2>
+
+<form id="loginForm">
+  <input type="email" id="email" placeholder="Email" required><br><br>
+  <input type="password" id="password" placeholder="Password" required><br><br>
+  <button type="submit">Login</button>
+</form>
+
+<p id="message"></p>
+
+<p>Don't have an account? <a href="register.html">Register</a></p>
+<p><a href="index.html">Back to search</a></p>
+
+</div>
+
+<footer class="app-footer">
+  <p>2026 Student Resource Finder Platform by Amandeep Gangwar</p>
+</footer>
+
+<script>
+const API = "/api";
+
+document.getElementById("loginForm").addEventListener("submit", async e => {
+  e.preventDefault();
+
+  const res = await fetch(`${API}/auth/login`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      email: email.value,
+      password: password.value
+    })
+  });
+
+  const data = await res.json();
+
+  if(res.ok){
+    localStorage.setItem("token", data.token);
+    window.location.href = "index.html";
+  } else {
+    message.innerText = data.message;
+  }
+});
+</script>
+
+</body>
+</html>

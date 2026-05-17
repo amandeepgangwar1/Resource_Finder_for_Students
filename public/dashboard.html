@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard | Student Resource Finder</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">Dashboard</p>
+      <h1>My Study Resources</h1>
+    </div>
+    <nav class="nav-links" aria-label="Primary navigation">
+      <a href="index.html">Search</a>
+      <a href="dashboard.html" aria-current="page">Dashboard</a>
+      <a href="admin.html">Admin</a>
+      <a class="auth-logged-out" href="login.html">Login</a>
+      <button class="link-button auth-logged-in" data-auth-action="logout" type="button">Logout</button>
+    </nav>
+  </header>
+
+  <main class="dashboard-layout">
+    <section class="stat-grid" aria-label="Saved resource summary">
+      <article class="stat-card">
+        <span>Saved</span>
+        <strong id="savedCount">0</strong>
+      </article>
+      <article class="stat-card">
+        <span>Sources</span>
+        <strong id="sourceCount">0</strong>
+      </article>
+      <article class="stat-card">
+        <span>Local files</span>
+        <strong id="localLibraryCount">0</strong>
+      </article>
+      <article class="stat-card">
+        <span>Last saved</span>
+        <strong id="recentSavedDate">None yet</strong>
+      </article>
+    </section>
+
+    <section class="surface">
+      <div class="section-heading inline-heading">
+        <div>
+          <p class="eyebrow">Saved list</p>
+          <h2>Bookmarks</h2>
+        </div>
+        <div class="toolbar-actions">
+          <button id="exportBookmarks" class="secondary" type="button">Export</button>
+          <button id="clearBookmarks" class="danger" type="button">Clear</button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <label class="sr-only" for="savedSearch">Filter saved resources</label>
+        <input id="savedSearch" type="search" placeholder="Filter saved resources">
+
+        <label class="sr-only" for="savedSort">Sort saved resources</label>
+        <select id="savedSort">
+          <option value="newest">Newest first</option>
+          <option value="title">Title</option>
+          <option value="source">Source</option>
+        </select>
+      </div>
+
+      <p id="dashboardMessage" class="status-message" aria-live="polite"></p>
+      <ul id="savedList" class="resource-list"></ul>
+    </section>
+
+    <section class="surface">
+      <div class="section-heading">
+        <p class="eyebrow">Suggested</p>
+        <h2>Recommended local files</h2>
+      </div>
+      <ul id="recommendationList" class="resource-list"></ul>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>2026 Student Resource Finder Platform by Amandeep Gangwar</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

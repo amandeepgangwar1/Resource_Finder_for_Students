@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Student Resource Finder</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">Study workspace</p>
+      <h1>Student Resource Finder</h1>
+    </div>
+    <nav class="nav-links" aria-label="Primary navigation">
+      <a href="index.html" aria-current="page">Search</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="admin.html">Admin</a>
+      <a class="auth-logged-out" href="login.html">Login</a>
+      <a class="auth-logged-out" href="register.html">Register</a>
+      <button class="link-button auth-logged-in" data-auth-action="logout" type="button">Logout</button>
+    </nav>
+  </header>
+
+  <main class="page-grid">
+    <section class="surface feature-panel">
+      <div class="section-heading">
+        <p class="eyebrow">Search</p>
+        <h2>Find local files and web study material</h2>
+        <p>Search uploaded resources, textbooks, tutorials, courses, and research links from one place.</p>
+      </div>
+
+      <div class="search-row">
+        <label class="sr-only" for="searchInput">Search topic</label>
+        <input id="searchInput" type="search" placeholder="Search a topic, subject, or title">
+        <button id="searchButton" type="button">Search</button>
+      </div>
+
+      <p id="statusMessage" class="status-message" aria-live="polite"></p>
+    </section>
+
+    <section class="surface library-panel" id="libraryPanel">
+      <div class="section-heading inline-heading">
+        <div>
+          <p class="eyebrow">Library</p>
+          <h2>Local files</h2>
+        </div>
+        <div class="library-actions">
+          <span class="count-pill"><span id="localCount">0</span> items</span>
+          <button id="libraryToggle" class="secondary" type="button" aria-expanded="false" aria-controls="localResults">
+            Open Library
+          </button>
+        </div>
+      </div>
+      <ul id="localResults" class="resource-list library-list" hidden></ul>
+    </section>
+
+    <section class="surface">
+      <div class="section-heading">
+        <p class="eyebrow">Web</p>
+        <h2>Search results from different sources</h2>
+      </div>
+      <ul id="results" class="resource-list">
+        <li class="empty-state">Search a topic to see books, videos, courses, papers, and tutorials.</li>
+      </ul>
+    </section>
+
+    <aside class="surface upload-panel">
+      <div class="section-heading">
+        <p class="eyebrow">Upload</p>
+        <h2>Add your own file</h2>
+      </div>
+
+      <form id="uploadForm" enctype="multipart/form-data">
+        <label for="resourceTitle">Title</label>
+        <input id="resourceTitle" type="text" name="title" placeholder="Uses file name if empty">
+
+        <label for="resourceSubject">Subject</label>
+        <input id="resourceSubject" type="text" name="subject" placeholder="Auto-detected if empty">
+
+        <label for="resourceFile">Resource file</label>
+        <input id="resourceFile" type="file" name="file" required>
+
+        <button type="submit">Upload file</button>
+      </form>
+    </aside>
+  </main>
+
+  <footer class="app-footer">
+    <p>2026 Student Resource Finder Platform by Amandeep Gangwar</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

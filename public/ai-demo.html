@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Features Demo - Resource Finder</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .ai-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .feature-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.2);
+            transform: translateY(-5px);
+        }
+        
+        .feature-card h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .feature-card h3 span {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+        
+        .feature-card p {
+            color: #666;
+            font-size: 0.9em;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #e7f3ff;
+            color: #0066cc;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-right: 5px;
+            margin-top: 10px;
+        }
+        
+        .badge.free {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .badge.fast {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .demo-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        
+        .demo-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .demo-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .demo-item label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .demo-item input,
+        .demo-item textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-family: inherit;
+            margin-bottom: 10px;
+        }
+        
+        .demo-item textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .demo-item button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+        
+        .demo-item button:hover {
+            background: #764ba2;
+        }
+        
+        .demo-item button:active {
+            transform: scale(0.98);
+        }
+        
+        .result {
+            background: #f0f4ff;
+            border: 1px solid #d0deff;
+            border-radius: 4px;
+            padding: 12px;
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 0.85em;
+            color: #333;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        .result.error {
+            background: #ffe0e0;
+            border-color: #ff9999;
+            color: #cc0000;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .api-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .api-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .api-item code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.85em;
+            color: #667eea;
+        }
+        
+        .setup-steps {
+            background: #e7f3ff;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #0066cc;
+            margin-bottom: 20px;
+        }
+        
+        .setup-steps h3 {
+            color: #0066cc;
+            margin-bottom: 10px;
+        }
+        
+        .setup-steps ol {
+            margin-left: 20px;
+            color: #333;
+        }
+        
+        .setup-steps li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        
+        .setup-steps code {
+            background: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #ddd;
+        }
+        
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+            
+            .ai-features {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 AI Features Demo</h1>
+            <p>Student Resource Finder - 10 Free AI Models</p>
+        </header>
+        
+        <div class="content">
+            <!-- Setup Instructions -->
+            <div class="setup-steps">
+                <h3>⚡ Quick Start</h3>
+                <ol>
+                    <li>Get free API key: <code>https://huggingface.co/settings/tokens</code></li>
+                    <li>Add to <code>.env</code>: <code>HF_API_KEY=hf_your_token</code></li>
+                    <li>Run: <code>npm install && npm start</code></li>
+                    <li>Test the features below 👇</li>
+                </ol>
+            </div>
+            
+            <!-- AI Features Overview -->
+            <div class="ai-features">
+                <div class="feature-card">
+                    <h3><span>🔍</span> Semantic Search</h3>
+                    <p>Find similar resources intelligently using TF-IDF and cosine similarity. Returns ranked results by relevance.</p>
+                    <span class="badge free">FREE</span>
+                    <span class="badge fast">INSTANT</span>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><span>🏷️</span> Auto-Classification</h3>
+                    <p>Automatically categorize resources into 8 subjects (Math, Science, Programming, etc.)</p>
+                    <span class="badge free">FREE</span>
+                    <span class="badge">2-3 sec</span>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><span>📝</span> Summarization</h3>
+                    <p>Generate concise summaries of long documents using AI. Great for previews.</p>
+                    <span class="badge free">FREE</span>
+                    <span class="badge">3-5 sec</span>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><span>❓</span> Q&A System</h3>
+                    <p>Ask questions about document content and get accurate answers extracted from the text.</p>
+                    <span class="badge free">FREE</span>
+                    <span class="badge">2-3 sec</span>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><span>🔗</span> Duplicate Detection</h3>
+                    <p>Automatically find and flag duplicate or very similar resources in the database.</p>
+                    <span class="badge free">FREE</span>
+                    <span class="badge fast">INSTANT</span>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><span>💡</span> Recommendations</h3>
+                    <p>Get personalized resource recommendations based on user browsing history.</p>
+                    <span class="badge free">FREE</span>
+                    <span class="badge fast">INSTANT</span>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><span>🛡️</span> Content Moderation</h3>
+                    <p>Automatically flag inappropriate or low-quality content before upload.</p>
+                    <span class="badge free">FREE</span>
+                    <span class="badge">1-2 sec</span>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><span>😊</span> Sentiment Analysis</h3>
+                    <p>Analyze the sentiment of resource reviews and comments (Positive/Negative/Neutral).</p>
+                    <span class="badge free">FREE</span>
+                    <span class="badge">1-2 sec</span>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><span>🏢</span> Entity Extraction</h3>
+                    <p>Automatically extract named entities like people, organizations, and locations.</p>
+                    <span class="badge free">FREE</span>
+                    <span class="badge">2-3 sec</span>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><span>🔑</span> Keyword Extraction</h3>
+                    <p>Extract important keywords and terms from any text automatically.</p>
+                    <span class="badge free">FREE</span>
+                    <span class="badge fast">INSTANT</span>
+                </div>
+            </div>
+            
+            <!-- Demo Section -->
+            <div class="demo-section">
+                <h2>🧪 Try the APIs</h2>
+                
+                <!-- Semantic Search Demo -->
+                <div class="demo-item">
+                    <label>🔍 Semantic Search</label>
+                    <input type="text" id="searchQuery" placeholder="Enter search query (e.g., 'python programming')" />
+                    <button onclick="demoSemanticSearch()">Search</button>
+                    <div id="searchResult"></div>
+                </div>
+                
+                <!-- Keyword Extraction Demo -->
+                <div class="demo-item">
+                    <label>🔑 Extract Keywords</label>
+                    <textarea id="keywordText" placeholder="Enter text to extract keywords from..."></textarea>
+                    <button onclick="demoKeywords()">Extract Keywords</button>
+                    <div id="keywordResult"></div>
+                </div>
+                
+                <!-- Sentiment Analysis Demo -->
+                <div class="demo-item">
+                    <label>😊 Sentiment Analysis</label>
+                    <textarea id="sentimentText" placeholder="Enter text to analyze sentiment..."></textarea>
+                    <button onclick="demoSentiment()">Analyze</button>
+                    <div id="sentimentResult"></div>
+                </div>
+                
+                <!-- Classification Demo -->
+                <div class="demo-item">
+                    <label>🏷️ Auto-Classify</label>
+                    <input type="text" id="classifyText" placeholder="Enter resource title..." />
+                    <button onclick="demoClassify()">Classify</button>
+                    <div id="classifyResult"></div>
+                </div>
+                
+                <!-- Summarization Demo -->
+                <div class="demo-item">
+                    <label>📝 Summarize Text</label>
+                    <textarea id="summarizeText" placeholder="Enter text to summarize..."></textarea>
+                    <button onclick="demoSummarize()">Summarize</button>
+                    <div id="summarizeResult"></div>
+                </div>
+            </div>
+            
+            <!-- API Endpoints List -->
+            <div class="demo-section">
+                <h2>📡 Available API Endpoints</h2>
+                <div class="api-list">
+                    <div class="api-item">
+                        <strong>POST</strong> <code>/api/ai/semantic-search</code><br>
+                        Semantic search across resources
+                    </div>
+                    <div class="api-item">
+                        <strong>POST</strong> <code>/api/ai/classify</code><br>
+                        Auto-classify resources
+                    </div>
+                    <div class="api-item">
+                        <strong>POST</strong> <code>/api/ai/summarize</code><br>
+                        Generate text summaries
+                    </div>
+                    <div class="api-item">
+                        <strong>POST</strong> <code>/api/ai/qa</code><br>
+                        Question answering
+                    </div>
+                    <div class="api-item">
+                        <strong>GET</strong> <code>/api/ai/duplicates</code><br>
+                        Find duplicate resources
+                    </div>
+                    <div class="api-item">
+                        <strong>GET</strong> <code>/api/ai/recommendations</code><br>
+                        Get recommendations
+                    </div>
+                    <div class="api-item">
+                        <strong>POST</strong> <code>/api/ai/moderate</code><br>
+                        Content moderation
+                    </div>
+                    <div class="api-item">
+                        <strong>POST</strong> <code>/api/ai/sentiment</code><br>
+                        Sentiment analysis
+                    </div>
+                    <div class="api-item">
+                        <strong>POST</strong> <code>/api/ai/entities</code><br>
+                        Entity extraction
+                    </div>
+                    <div class="api-item">
+                        <strong>POST</strong> <code>/api/ai/keywords</code><br>
+                        Keyword extraction
+                    </div>
+                    <div class="api-item">
+                        <strong>GET</strong> <code>/api/ai/insights</code><br>
+                        Dashboard insights
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>2026 Student Resource Finder Platform by Amandeep Gangwar</p>
+            <p>💡 All AI features are completely FREE! No credit card required. Powered by Hugging Face, Natural.js, and built-in ML algorithms.</p>
+            <p>📚 <a href="AI_API_DOCUMENTATION.md" style="color: #667eea; text-decoration: none;">Read Full Documentation</a> | <a href="QUICK_START.md" style="color: #667eea; text-decoration: none;">Quick Start Guide</a></p>
+        </footer>
+    </div>
+    <script>
+        const API_BASE = window.location.origin;
+        
+        async function showLoading(elementId) {
+            document.getElementById(elementId).innerHTML = '<div class="loading"></div> Processing...';
+        }
+        
+        function showError(elementId, message) {
+            document.getElementById(elementId).innerHTML = `<div class="result error">❌ Error: ${message}</div>`;
+        }
+        
+        function showSuccess(elementId, data) {
+            document.getElementById(elementId).innerHTML = `<div class="result">✅ ${JSON.stringify(data, null, 2)}</div>`;
+        }
+        
+        async function demoSemanticSearch() {
+            const query = document.getElementById('searchQuery').value;
+            if (!query) return alert('Please enter a search query');
+            
+            showLoading('searchResult');
+            try {
+                const response = await fetch(`${API_BASE}/api/ai/semantic-search`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+                const data = await response.json();
+                showSuccess('searchResult', data);
+            } catch (e) {
+                showError('searchResult', e.message);
+            }
+        }
+        
+        async function demoKeywords() {
+            const text = document.getElementById('keywordText').value;
+            if (!text) return alert('Please enter text');
+            
+            showLoading('keywordResult');
+            try {
+                const response = await fetch(`${API_BASE}/api/ai/keywords`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                const data = await response.json();
+                showSuccess('keywordResult', data);
+            } catch (e) {
+                showError('keywordResult', e.message);
+            }
+        }
+        
+        async function demoSentiment() {
+            const text = document.getElementById('sentimentText').value;
+            if (!text) return alert('Please enter text');
+            
+            showLoading('sentimentResult');
+            try {
+                const response = await fetch(`${API_BASE}/api/ai/sentiment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                const data = await response.json();
+                showSuccess('sentimentResult', data);
+            } catch (e) {
+                showError('sentimentResult', e.message);
+            }
+        }
+        
+        async function demoClassify() {
+            const title = document.getElementById('classifyText').value;
+            if (!title) return alert('Please enter a title');
+            
+            showLoading('classifyResult');
+            try {
+                const response = await fetch(`${API_BASE}/api/ai/classify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title })
+                });
+                const data = await response.json();
+                showSuccess('classifyResult', data);
+            } catch (e) {
+                showError('classifyResult', e.message);
+            }
+        }
+        
+        async function demoSummarize() {
+            const text = document.getElementById('summarizeText').value;
+            if (!text) return alert('Please enter text');
+            
+            showLoading('summarizeResult');
+            try {
+                const response = await fetch(`${API_BASE}/api/ai/summarize`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                const data = await response.json();
+                showSuccess('summarizeResult', data);
+            } catch (e) {
+                showError('summarizeResult', e.message);
+            }
+        }
+    </script>
+</body>
+</html>

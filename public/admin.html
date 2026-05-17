@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin | Student Resource Finder</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">Admin</p>
+      <h1>Resource Controls</h1>
+    </div>
+    <nav class="nav-links" aria-label="Primary navigation">
+      <a href="index.html">Search</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="admin.html" aria-current="page">Admin</a>
+      <a class="auth-logged-out" href="login.html">Login</a>
+      <button class="link-button auth-logged-in" data-auth-action="logout" type="button">Logout</button>
+    </nav>
+  </header>
+
+  <main class="admin-layout">
+    <section class="stat-grid" aria-label="Admin summary">
+      <article class="stat-card">
+        <span>Resources</span>
+        <strong id="adminResourceCount">0</strong>
+      </article>
+      <article class="stat-card">
+        <span>Users</span>
+        <strong id="adminUserCount">0</strong>
+      </article>
+      <article class="stat-card">
+        <span>Flagged</span>
+        <strong id="adminFlaggedCount">0</strong>
+      </article>
+      <article class="stat-card">
+        <span>Top subjects</span>
+        <strong id="adminSubjectCount">0</strong>
+      </article>
+    </section>
+
+    <section class="surface">
+      <div class="section-heading inline-heading">
+        <div>
+          <p class="eyebrow">Manage</p>
+          <h2>Uploaded resources</h2>
+        </div>
+        <div class="toolbar-actions">
+          <button id="refreshAdmin" class="secondary" data-admin-control type="button">Refresh</button>
+          <button id="exportResources" class="secondary" data-admin-control type="button">Export CSV</button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <label class="sr-only" for="adminSearch">Search resources</label>
+        <input id="adminSearch" data-admin-control type="search" placeholder="Search title or subject">
+
+        <label class="sr-only" for="adminSubjectFilter">Filter by subject</label>
+        <select id="adminSubjectFilter" data-admin-control>
+          <option value="">All subjects</option>
+        </select>
+      </div>
+
+      <p id="adminMessage" class="status-message" aria-live="polite"></p>
+
+      <form id="adminEditor" class="editor-panel" hidden>
+        <input id="editResourceId" type="hidden">
+        <div class="section-heading">
+          <p class="eyebrow">Edit selected resource</p>
+          <h2>Update resource</h2>
+        </div>
+        <label for="editTitle">Title</label>
+        <input id="editTitle" type="text" required>
+
+        <label for="editSubject">Subject</label>
+        <input id="editSubject" type="text" required>
+
+        <div class="actions">
+          <button type="submit">Save changes</button>
+          <button id="cancelEdit" class="secondary" type="button">Cancel</button>
+        </div>
+      </form>
+
+      <ul id="adminResourceList" class="resource-list"></ul>
+    </section>
+
+    <aside class="surface admin-side">
+      <div class="section-heading">
+        <p class="eyebrow">Insights</p>
+        <h2>Subject activity</h2>
+      </div>
+      <ul id="topSubjects" class="compact-list"></ul>
+
+      <div class="side-block">
+        <div class="section-heading">
+          <p class="eyebrow">Quality check</p>
+          <h2>Duplicate scan</h2>
+        </div>
+        <button id="scanDuplicates" data-admin-control type="button">Scan duplicates</button>
+        <ul id="duplicateResults" class="compact-list"></ul>
+      </div>
+    </aside>
+  </main>
+
+  <div id="duplicateDialog" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="duplicateDialogTitle" hidden>
+    <div class="modal-panel">
+      <div class="section-heading">
+        <p class="eyebrow">Duplicate found</p>
+        <h2 id="duplicateDialogTitle">Delete duplicate file?</h2>
+      </div>
+      <p id="duplicateDialogMessage" class="modal-message"></p>
+      <ul id="duplicateDeleteList" class="compact-list duplicate-delete-list"></ul>
+      <div class="actions modal-actions">
+        <button id="confirmDuplicateDelete" class="danger" type="button">Yes</button>
+        <button id="cancelDuplicateDelete" class="secondary" type="button">No</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <p>2026 Student Resource Finder Platform by Amandeep Gangwar</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -24,7 +24,7 @@
 <p id="message"></p>
 
 <p>Don't have an account? <a href="register.html">Register</a></p>
-<p><a href="index.html">Back to search</a></p>
+<p><a href="search.html">Back to search</a></p>
 
 </div>
 
@@ -32,8 +32,9 @@
   <p>2026 Student Resource Finder Platform by Amandeep Gangwar</p>
 </footer>
 
+<script src="config.js"></script>
 <script>
-const API = "/api";
+const API = window.resourceFinderApiBase();
 
 document.getElementById("loginForm").addEventListener("submit", async e => {
   e.preventDefault();
@@ -51,7 +52,7 @@ document.getElementById("loginForm").addEventListener("submit", async e => {
 
   if(res.ok){
     localStorage.setItem("token", data.token);
-    window.location.href = "index.html";
+    window.location.href = "search.html";
   } else {
     message.innerText = data.message;
   }

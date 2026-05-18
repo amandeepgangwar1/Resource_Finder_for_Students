@@ -25,7 +25,7 @@
 <p id="message"></p>
 
 <p>Already have an account? <a href="login.html">Login</a></p>
-<p><a href="index.html">Back to search</a></p>
+<p><a href="search.html">Back to search</a></p>
 
 </div>
 
@@ -33,7 +33,10 @@
   <p>2026 Student Resource Finder Platform by Amandeep Gangwar</p>
 </footer>
 
+<script src="config.js"></script>
 <script>
+const API = window.resourceFinderApiBase();
+
 document.getElementById("registerForm").addEventListener("submit", async function(e) {
   e.preventDefault();
 
@@ -41,7 +44,7 @@ document.getElementById("registerForm").addEventListener("submit", async functio
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  const res = await fetch("/api/auth/register", {
+  const res = await fetch(`${API}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, email, password })

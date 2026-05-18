@@ -474,8 +474,9 @@
             <p>📚 <a href="AI_API_DOCUMENTATION.md" style="color: #667eea; text-decoration: none;">Read Full Documentation</a> | <a href="QUICK_START.md" style="color: #667eea; text-decoration: none;">Quick Start Guide</a></p>
         </footer>
     </div>
+    <script src="config.js"></script>
     <script>
-        const API_BASE = window.location.origin;
+        const API_BASE = window.resourceFinderApiOrigin() || window.location.origin;
         
         async function showLoading(elementId) {
             document.getElementById(elementId).innerHTML = '<div class="loading"></div> Processing...';

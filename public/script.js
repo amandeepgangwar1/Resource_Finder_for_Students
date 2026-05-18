@@ -1,10 +1,20 @@
-const API_BASE = "/api";
+const API_BASE =
+  typeof window !== "undefined" && typeof window.resourceFinderApiBase === "function"
+    ? window.resourceFinderApiBase()
+    : "/api";
 let token = localStorage.getItem("token");
 
 const state = {
   adminResources: [],
   dashboardResources: [],
   duplicateDeletionCandidates: []
+};
+
+const WEB_SOURCE_FILTERS = {
+  "open-library": "Open Library",
+  youtube: "YouTube",
+  coursera: "Coursera",
+  core: "CORE"
 };
 
 function byId(id) {
@@ -38,7 +48,13 @@ function encodeUploadPath(value) {
 function resourceLink(resource) {
   if (resource.link) return resource.link;
   const filePath = resource.filePath || resource.file || resource.pdf;
-  if (filePath) return `/uploads/${encodeUploadPath(filePath)}`;
+  if (filePath) {
+    const uploadBase =
+      typeof window !== "undefined" && typeof window.resourceFinderUploadBase === "function"
+        ? window.resourceFinderUploadBase()
+        : "/uploads";
+    return `${uploadBase}/${encodeUploadPath(filePath)}`;
+  }
   return "#";
 }
 
@@ -82,6 +98,10 @@ function sourceClassFor(source) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+function normalizeSourceFilter(source) {
+  return WEB_SOURCE_FILTERS[sourceClassFor(source)] || "";
 }
 
 function renderAuthControls() {
@@ -366,8 +386,9 @@ async function loadResources(search = "") {
   }
 }
 
-function buildWebResults(query, books = []) {
+function buildWebResults(query, books = [], sourceFilter = "") {
   const encoded = encodeURIComponent(query);
+  const selectedSource = normalizeSourceFilter(sourceFilter);
   const results = [];
 
   books.slice(0, 5).forEach((book) => {
@@ -380,6 +401,16 @@ function buildWebResults(query, books = []) {
       link: `https://openlibrary.org${book.key}`
     });
   });
+
+  if (!results.some((item) => item.source === "Open Library")) {
+    results.push({
+      title: `${query} books`,
+      subject: "Open Library search",
+      source: "Open Library",
+      icon: "BK",
+      link: `https://openlibrary.org/search?q=${encoded}`
+    });
+  }
 
   results.push(
     {
@@ -440,6 +471,10 @@ function buildWebResults(query, books = []) {
     }
   );
 
+  if (selectedSource) {
+    return results.filter((item) => item.source === selectedSource);
+  }
+
   return results;
 }
 
@@ -447,37 +482,68 @@ async function searchResource() {
   const input = byId("searchInput");
   const webList = byId("results");
   const query = input ? input.value.trim() : "";
+  const sourceFilter = getInitialSourceFilter();
 
   if (!query) {
     showStatus("Enter a topic to search.", "error");
     return;
   }
 
+  if (!webList) {
+    const params = new URLSearchParams({ q: query });
+    if (sourceFilter) params.set("source", sourceClassFor(sourceFilter));
+    window.location.href = `results.html?${params.toString()}`;
+    return;
+  }
+
+  // Save search to history
+  saveSearchToHistory(query);
+
   if (webList) {
     webList.innerHTML = '<li class="empty-state">Searching web resources...</li>';
   }
 
-  showStatus("Searching local library and web sources...", "info");
-  setLibraryOpen(true);
-  loadResources(query);
+  if (sourceFilter) {
+    showStatus(`Searching ${sourceFilter} results...`, "info");
+  } else {
+    showStatus("Searching local library and web sources...", "info");
+    setLibraryOpen(true);
+    loadResources(query);
+  }
 
-  try {
-    const bookData = await fetchJson(
-      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}`
-    );
-    const webResults = buildWebResults(query, bookData.docs || []);
-    renderResourceList(webList, webResults, "No web results found.", {
-      allowSave: true,
-      openLabel: "Open"
-    });
-    showStatus("Search complete.", "success");
-  } catch (error) {
-    const fallbackResults = buildWebResults(query, []);
-    renderResourceList(webList, fallbackResults, "No web results found.", {
-      allowSave: true,
-      openLabel: "Open"
-    });
+  const needsOpenLibrary = !sourceFilter || sourceFilter === "Open Library";
+  let books = [];
+  let openLibraryUnavailable = false;
+
+  if (needsOpenLibrary) {
+    try {
+      const bookData = await fetchJson(
+        `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}`
+      );
+      books = bookData.docs || [];
+    } catch (error) {
+      openLibraryUnavailable = true;
+    }
+  }
+
+  const webResults = buildWebResults(query, books, sourceFilter);
+  const emptyMessage = sourceFilter
+    ? `No ${sourceFilter} results found for "${query}".`
+    : "No web results found.";
+
+  renderResourceList(webList, webResults, emptyMessage, {
+    allowSave: true,
+    openLabel: "Open"
+  });
+
+  if (openLibraryUnavailable && sourceFilter === "Open Library") {
+    showStatus("Open Library is unavailable, but a direct search link is ready.", "info");
+  } else if (openLibraryUnavailable) {
     showStatus("Open Library is unavailable, but quick links are ready.", "info");
+  } else if (sourceFilter) {
+    showStatus(`Showing ${sourceFilter} results for "${query}".`, "success");
+  } else {
+    showStatus("Search complete.", "success");
   }
 }
 
@@ -514,25 +580,135 @@ function setupUploadForm() {
   });
 }
 
-function initHomePage() {
-  const searchInput = byId("searchInput");
-  if (!searchInput) return;
+function getSearchHistory() {
+  try {
+    const raw = JSON.parse(localStorage.getItem("searchHistory") || "[]");
+    if (!Array.isArray(raw)) return [];
 
-  byId("searchButton")?.addEventListener("click", searchResource);
-  searchInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") searchResource();
-  });
+    return raw
+      .filter((item) => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  } catch (error) {
+    return [];
+  }
+}
 
-  document.querySelectorAll("[data-topic]").forEach((button) => {
+function saveSearchToHistory(query) {
+  if (!query.trim()) return;
+  const history = getSearchHistory();
+  const trimmedQuery = query.trim();
+  
+  // Remove duplicate if exists
+  const filtered = history.filter((q) => q.toLowerCase() !== trimmedQuery.toLowerCase());
+  
+  // Add to beginning (newest first) and keep only last 20 searches
+  filtered.unshift(trimmedQuery);
+  localStorage.setItem("searchHistory", JSON.stringify(filtered.slice(0, 20)));
+}
+
+function renderSearchHistory() {
+  const resultsList = byId("results");
+  if (!resultsList) return;
+
+  const history = getSearchHistory();
+  const sourceFilter = getInitialSourceFilter();
+  if (!history.length) {
+    const empty = document.createElement("li");
+    empty.className = "empty-state";
+    empty.textContent = sourceFilter
+      ? `Search a topic first to show ${sourceFilter} results from your history.`
+      : "Search a topic to see books, videos, courses, papers, and tutorials.";
+    resultsList.innerHTML = "";
+    resultsList.appendChild(empty);
+    showStatus(empty.textContent, "info");
+    return;
+  }
+
+  resultsList.innerHTML = "";
+  
+  // Show search history heading
+  const heading = document.createElement("li");
+  heading.className = "history-heading";
+  const headingText = document.createElement("strong");
+  headingText.textContent = sourceFilter
+    ? `Recent Searches for ${sourceFilter}`
+    : "Your Recent Searches";
+  heading.appendChild(headingText);
+  resultsList.appendChild(heading);
+
+  history.forEach((query) => {
+    const li = document.createElement("li");
+    li.className = "history-item";
+    
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "history-button";
+    button.textContent = query;
     button.addEventListener("click", () => {
-      searchInput.value = button.dataset.topic;
+      byId("searchInput").value = query;
       searchResource();
     });
+    
+    li.appendChild(button);
+    resultsList.appendChild(li);
   });
+
+  showStatus(
+    sourceFilter
+      ? `Click any search to show ${sourceFilter} results.`
+      : "Click any search to run it again.",
+    "info"
+  );
+}
+
+function getInitialSourceFilter() {
+  return normalizeSourceFilter(new URLSearchParams(window.location.search).get("source"));
+}
+
+function getInitialSearchQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const query = params.get("q") || "";
+  if (query.trim()) return query;
+
+  return getInitialSourceFilter() ? getSearchHistory()[0] || "" : "";
+}
+
+function initResourcePages() {
+  const searchInput = byId("searchInput");
+
+  if (searchInput) {
+    const initialQuery = getInitialSearchQuery();
+    if (initialQuery && !searchInput.value) {
+      searchInput.value = initialQuery;
+    }
+
+    byId("searchButton")?.addEventListener("click", searchResource);
+    searchInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") searchResource();
+    });
+
+    document.querySelectorAll("[data-topic]").forEach((button) => {
+      button.addEventListener("click", () => {
+        searchInput.value = button.dataset.topic;
+        searchResource();
+      });
+    });
+
+    if (initialQuery && byId("results")) {
+      searchResource();
+    } else if (byId("results")) {
+      // Show search history or empty state if no initial query
+      renderSearchHistory();
+    }
+  }
 
   setupUploadForm();
   setupLibraryPanel();
-  loadResources();
+
+  if (byId("localResults")) {
+    loadResources(getInitialSearchQuery());
+  }
 }
 
 function sortBookmarks(bookmarks) {
@@ -1029,7 +1205,7 @@ function initAuthControls() {
 
 document.addEventListener("DOMContentLoaded", () => {
   initAuthControls();
-  initHomePage();
+  initResourcePages();
   initDashboard();
   initAdmin();
 });

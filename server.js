@@ -36,6 +36,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(UPLOAD_ROOT));
 
+app.get("/api/health", (req, res) => {
+  res.json({
+    ok: true,
+    service: "student-resource-finder",
+    environment: process.env.NODE_ENV || "development"
+  });
+});
+
 // ================= MULTER =================
 const storage = multer.diskStorage({
   destination: uploadDestination,

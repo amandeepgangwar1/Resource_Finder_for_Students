@@ -4,9 +4,14 @@
   "description": "",
   "main": "server.js",
   "scripts": {
+    "build": "npm run build:vercel",
+    "build:vercel": "node scripts/build-vercel.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
     "dev": "node server.js"
+  },
+  "engines": {
+    "node": "20.x"
   },
   "keywords": [],
   "author": "",

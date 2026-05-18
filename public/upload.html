@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Upload Notes | Student Resource Finder</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand-mark">
+      <span aria-hidden="true">📚</span>
+      <strong>Student Resource Finder</strong>
+    </div>
+    <nav class="nav-links" aria-label="Primary navigation">
+      <a href="index.html">Home</a>
+      <a href="search.html">Search</a>
+      <a href="library.html">Library</a>
+      <a href="results.html">Results</a>
+      <a href="upload.html" aria-current="page">Upload</a>
+      <a class="auth-logged-out" href="login.html">Login</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="admin.html">Admin</a>
+      <button class="link-button auth-logged-in" data-auth-action="logout" type="button">Logout</button>
+    </nav>
+  </header>
+
+  <main class="section-page">
+    <section class="surface upload-panel page-section-card" id="uploadSection">
+      <div class="section-heading">
+        <h1>📤 Upload Notes</h1>
+        <p>Add PDFs, documents, spreadsheets, code files, or other study resources.</p>
+      </div>
+
+      <form id="uploadForm" enctype="multipart/form-data">
+        <label for="resourceTitle">Title</label>
+        <input id="resourceTitle" type="text" name="title" placeholder="Enter resource title">
+
+        <label for="resourceSubject">Subject</label>
+        <input id="resourceSubject" type="text" name="subject" placeholder="Enter subject name">
+
+        <label for="resourceFile">Resource file</label>
+        <input id="resourceFile" type="file" name="file" required>
+
+        <button type="submit">Upload PDF</button>
+      </form>
+
+      <p id="statusMessage" class="status-message" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>© 2026 Student Resource Finder Platform by Amandeep Gangwar</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

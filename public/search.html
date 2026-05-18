@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Search | Student Resource Finder</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand-mark">
+      <span aria-hidden="true">📚</span>
+      <strong>Student Resource Finder</strong>
+    </div>
+    <nav class="nav-links" aria-label="Primary navigation">
+      <a href="index.html">Home</a>
+      <a href="search.html" aria-current="page">Search</a>
+      <a href="library.html">Library</a>
+      <a href="results.html">Results</a>
+      <a href="upload.html">Upload</a>
+      <a class="auth-logged-out" href="login.html">Login</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="admin.html">Admin</a>
+      <button class="link-button auth-logged-in" data-auth-action="logout" type="button">Logout</button>
+    </nav>
+  </header>
+
+  <main class="section-page">
+    <section class="surface feature-panel page-section-card">
+      <div class="section-heading">
+        <h1>🔍 Search Study Resources</h1>
+        <p>Search local uploads and online learning sources from one focused page.</p>
+      </div>
+
+      <div class="search-row">
+        <label class="sr-only" for="searchInput">Search topic</label>
+        <input id="searchInput" type="search" placeholder="Enter subject, topic, or keyword...">
+        <button id="searchButton" type="button">Search</button>
+      </div>
+
+      <p class="includes-line">After searching, results open on the Results page.</p>
+      <p id="statusMessage" class="status-message" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>© 2026 Student Resource Finder Platform by Amandeep Gangwar</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

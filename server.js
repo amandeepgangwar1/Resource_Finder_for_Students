@@ -26,9 +26,26 @@ const {
 
 const app = express();
 const PORT = Number.parseInt(process.env.PORT, 10) || 5000;
+const allowedOrigins = String(process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((origin) => origin.trim().replace(/\/+$/, ""))
+  .filter(Boolean);
+
+function corsOptions(req, callback) {
+  const origin = req.header("Origin");
+
+  if (!origin || !allowedOrigins.length) {
+    callback(null, { origin: true });
+    return;
+  }
+
+  callback(null, {
+    origin: allowedOrigins.includes(origin.replace(/\/+$/, ""))
+  });
+}
 
 // MIDDLEWARE
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

@@ -19,3 +19,5 @@ services:
         sync: false
       - key: MAX_UPLOAD_MB
         value: 25
+      - key: CORS_ORIGIN
+        sync: false

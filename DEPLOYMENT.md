@@ -54,6 +54,7 @@ MONGODB_URI=your_mongodb_atlas_connection_string
 JWT_SECRET=your_long_random_secret
 HF_API_KEY=your_hugging_face_token_optional
 MAX_UPLOAD_MB=25
+CORS_ORIGIN=https://your-vercel-site.vercel.app
 ```
 
 7. Deploy.
@@ -102,6 +103,22 @@ Open the Vercel URL and test:
 3. Search resources.
 4. Upload a small file.
 5. Open Dashboard.
+
+## Restrict CORS
+
+After both Render and Vercel are live, set this environment variable on Render:
+
+```txt
+CORS_ORIGIN=https://your-vercel-site.vercel.app
+```
+
+Use your real Vercel frontend URL and do not add a trailing slash. If you have more than one allowed frontend, separate them with commas:
+
+```txt
+CORS_ORIGIN=https://your-site.vercel.app,https://www.yourdomain.com
+```
+
+Then redeploy Render.
 
 ## Important Upload Note
 

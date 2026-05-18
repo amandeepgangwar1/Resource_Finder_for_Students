@@ -7,7 +7,9 @@ let token = localStorage.getItem("token");
 const state = {
   adminResources: [],
   dashboardResources: [],
-  duplicateDeletionCandidates: []
+  duplicateDeletionCandidates: [],
+  userBookmarks: [],
+  searchHistory: []
 };
 
 const WEB_SOURCE_FILTERS = {
@@ -115,7 +117,11 @@ function renderAuthControls() {
 
 function clearAuthSession() {
   localStorage.removeItem("token");
+  localStorage.removeItem("bookmarks");
+  localStorage.removeItem("searchHistory");
   token = null;
+  state.userBookmarks = [];
+  state.searchHistory = [];
   renderAuthControls();
 }
 
@@ -151,28 +157,176 @@ function showStatus(message, type = "info") {
   target.className = `status-message ${type}`;
 }
 
-function getBookmarks() {
+function normalizeBookmarkItem(item) {
+  return {
+    id: item.id || item._id || item.link || `${Date.now()}-${Math.random()}`,
+    title: item.title || "Untitled resource",
+    subject: item.subject || "General",
+    source: item.source || item.type || "Saved resource",
+    link: item.link || resourceLink(item),
+    createdAt: item.createdAt || new Date().toISOString()
+  };
+}
+
+function readLocalBookmarks() {
   try {
     const raw = JSON.parse(localStorage.getItem("bookmarks") || "[]");
     if (!Array.isArray(raw)) return [];
 
     return raw
       .filter((item) => item && (item.title || item.link))
-      .map((item) => ({
-        id: item.id || item._id || item.link || `${Date.now()}-${Math.random()}`,
-        title: item.title || "Untitled resource",
-        subject: item.subject || "General",
-        source: item.source || item.type || "Saved resource",
-        link: item.link || resourceLink(item),
-        createdAt: item.createdAt || new Date().toISOString()
-      }));
+      .map(normalizeBookmarkItem);
   } catch (error) {
     return [];
   }
 }
 
-function saveBookmarks(bookmarks) {
-  localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
+function mergeBookmarks(primary = [], secondary = []) {
+  const seen = new Set();
+  const merged = [];
+
+  [...primary, ...secondary].forEach((item) => {
+    const bookmark = normalizeBookmarkItem(item);
+    const key = resourceKey(bookmark);
+    if (seen.has(key)) return;
+    seen.add(key);
+    merged.push(bookmark);
+  });
+
+  return merged.slice(0, 100);
+}
+
+function readLocalSearchHistory() {
+  try {
+    const raw = JSON.parse(localStorage.getItem("searchHistory") || "[]");
+    if (!Array.isArray(raw)) return [];
+
+    return raw
+      .filter((item) => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  } catch (error) {
+    return [];
+  }
+}
+
+function mergeSearchHistory(primary = [], secondary = []) {
+  const seen = new Set();
+  const merged = [];
+
+  [...primary, ...secondary].forEach((item) => {
+    const query = String(item || "").trim();
+    const key = query.toLowerCase();
+    if (!query || seen.has(key)) return;
+    seen.add(key);
+    merged.push(query);
+  });
+
+  return merged.slice(0, 20);
+}
+
+function initializeLocalUserState() {
+  state.userBookmarks = readLocalBookmarks();
+  state.searchHistory = readLocalSearchHistory();
+}
+
+function getBookmarks() {
+  return state.userBookmarks;
+}
+
+function saveBookmarks(bookmarks, options = {}) {
+  state.userBookmarks = mergeBookmarks(bookmarks);
+  localStorage.setItem("bookmarks", JSON.stringify(state.userBookmarks));
+
+  if (options.sync !== false) {
+    syncBookmarksToDatabase();
+  }
+}
+
+function getSearchHistory() {
+  return state.searchHistory;
+}
+
+function saveSearchHistory(history, options = {}) {
+  state.searchHistory = mergeSearchHistory(history);
+  localStorage.setItem("searchHistory", JSON.stringify(state.searchHistory));
+
+  if (options.sync !== false) {
+    syncSearchHistoryToDatabase(state.searchHistory[0]);
+  }
+}
+
+async function syncBookmarksToDatabase() {
+  if (!token) return;
+
+  try {
+    const data = await fetchJson(`${API_BASE}/user/bookmarks`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token
+      },
+      body: JSON.stringify({ bookmarks: state.userBookmarks })
+    });
+
+    state.userBookmarks = mergeBookmarks(data.bookmarks || state.userBookmarks);
+    localStorage.setItem("bookmarks", JSON.stringify(state.userBookmarks));
+    syncSaveButtons();
+  } catch (error) {
+    showStatus(error.message || "Saved resources could not sync.", "error");
+  }
+}
+
+async function syncSearchHistoryToDatabase(query) {
+  if (!token || !query) return;
+
+  try {
+    const data = await fetchJson(`${API_BASE}/user/search-history`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token
+      },
+      body: JSON.stringify({ query })
+    });
+
+    state.searchHistory = mergeSearchHistory(data.searchHistory || state.searchHistory);
+    localStorage.setItem("searchHistory", JSON.stringify(state.searchHistory));
+  } catch (error) {
+    showStatus(error.message || "Search history could not sync.", "error");
+  }
+}
+
+async function loadUserStateFromDatabase() {
+  if (!token) return;
+
+  const localBookmarks = getBookmarks();
+  const localHistory = getSearchHistory();
+
+  try {
+    const data = await fetchJson(`${API_BASE}/user/state`, {
+      headers: { Authorization: token }
+    });
+    const mergedBookmarks = mergeBookmarks(localBookmarks, data.bookmarks || []);
+    const mergedHistory = mergeSearchHistory(localHistory, data.searchHistory || []);
+
+    saveBookmarks(mergedBookmarks, { sync: false });
+    saveSearchHistory(mergedHistory, { sync: false });
+
+    await fetchJson(`${API_BASE}/user/state`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token
+      },
+      body: JSON.stringify({
+        bookmarks: state.userBookmarks,
+        searchHistory: state.searchHistory
+      })
+    });
+  } catch (error) {
+    showStatus(error.message || "Unable to load saved account data.", "error");
+  }
 }
 
 function isBookmarked(item) {
@@ -580,20 +734,6 @@ function setupUploadForm() {
   });
 }
 
-function getSearchHistory() {
-  try {
-    const raw = JSON.parse(localStorage.getItem("searchHistory") || "[]");
-    if (!Array.isArray(raw)) return [];
-
-    return raw
-      .filter((item) => typeof item === "string")
-      .map((item) => item.trim())
-      .filter(Boolean);
-  } catch (error) {
-    return [];
-  }
-}
-
 function saveSearchToHistory(query) {
   if (!query.trim()) return;
   const history = getSearchHistory();
@@ -604,7 +744,7 @@ function saveSearchToHistory(query) {
   
   // Add to beginning (newest first) and keep only last 20 searches
   filtered.unshift(trimmedQuery);
-  localStorage.setItem("searchHistory", JSON.stringify(filtered.slice(0, 20)));
+  saveSearchHistory(filtered.slice(0, 20));
 }
 
 function renderSearchHistory() {
@@ -1203,8 +1343,10 @@ function initAuthControls() {
   });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  initializeLocalUserState();
   initAuthControls();
+  await loadUserStateFromDatabase();
   initResourcePages();
   initDashboard();
   initAdmin();

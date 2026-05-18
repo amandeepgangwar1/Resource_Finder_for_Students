@@ -5,6 +5,7 @@ const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
+const crypto = require("crypto");
 const path = require("path");
 const fs = require("fs");
 
@@ -114,6 +115,81 @@ function escapeRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function publicUserState(user) {
+  return {
+    name: user.name,
+    email: user.email,
+    bookmarks: (user.bookmarks || []).map((bookmark) => ({
+      id: bookmark.id,
+      title: bookmark.title,
+      subject: bookmark.subject,
+      source: bookmark.source,
+      link: bookmark.link,
+      createdAt: bookmark.createdAt
+    })),
+    searchHistory: (user.searchHistory || []).map((entry) => entry.query).filter(Boolean)
+  };
+}
+
+function normalizeBookmark(bookmark = {}) {
+  const id = String(bookmark.id || bookmark.link || bookmark.title || "").trim();
+  const title = String(bookmark.title || "Untitled resource").trim();
+  const createdAt = new Date(bookmark.createdAt);
+
+  if (!id && !title) return null;
+
+  return {
+    id: id || title,
+    title,
+    subject: String(bookmark.subject || "General").trim(),
+    source: String(bookmark.source || "Saved resource").trim(),
+    link: String(bookmark.link || "#").trim(),
+    createdAt: Number.isNaN(createdAt.getTime()) ? new Date() : createdAt
+  };
+}
+
+function normalizeBookmarks(bookmarks = []) {
+  const unique = new Map();
+
+  bookmarks.forEach((bookmark) => {
+    const normalized = normalizeBookmark(bookmark);
+    if (!normalized) return;
+    unique.set(normalized.id, normalized);
+  });
+
+  return [...unique.values()].slice(0, 100);
+}
+
+function normalizeSearchHistory(history = []) {
+  const unique = [];
+  const seen = new Set();
+
+  history.forEach((entry) => {
+    const query = String(typeof entry === "string" ? entry : entry?.query || "")
+      .trim()
+      .slice(0, 120);
+    const key = query.toLowerCase();
+
+    if (!query || seen.has(key)) return;
+    seen.add(key);
+    unique.push({ query, searchedAt: new Date() });
+  });
+
+  return unique.slice(0, 20);
+}
+
+function createPasswordResetToken() {
+  return crypto.randomBytes(24).toString("hex");
+}
+
+function hashPasswordResetToken(token) {
+  return crypto.createHash("sha256").update(String(token)).digest("hex");
+}
+
 async function resolveResourceSubject({ title, subject, file, category }) {
   const suppliedSubject = String(subject || "").trim();
   const classificationInput = [
@@ -148,22 +224,25 @@ async function resolveResourceSubject({ title, subject, file, category }) {
 // ================= REGISTER =================
 app.post("/api/auth/register", async (req, res) => {
   try {
-    console.log("Register Body:", req.body);
-
     const { name, email, password } = req.body;
+    const normalizedEmail = normalizeEmail(email);
 
-    if (!name || !email || !password)
+    if (!name || !normalizedEmail || !password)
       return res.status(400).json({ message: "All fields required" });
 
-    const existingUser = await User.findOne({ email });
+    if (String(password).length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser)
       return res.status(400).json({ message: "Email already exists" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await User.create({
-      name,
-      email,
+      name: String(name).trim(),
+      email: normalizedEmail,
       password: hashedPassword
     });
 
@@ -178,8 +257,9 @@ app.post("/api/auth/register", async (req, res) => {
 app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = normalizeEmail(email);
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user)
       return res.status(400).json({ message: "User not found" });
 
@@ -187,11 +267,152 @@ app.post("/api/auth/login", async (req, res) => {
     if (!valid)
       return res.status(400).json({ message: "Wrong password" });
 
+    user.lastLoginAt = new Date();
+    user.loginHistory = [
+      {
+        loggedInAt: user.lastLoginAt,
+        ip: req.ip,
+        userAgent: req.get("user-agent") || ""
+      },
+      ...(user.loginHistory || [])
+    ].slice(0, 20);
+    await user.save();
+
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || "SECRET_KEY");
 
     res.json({ token });
   } catch (error) {
     res.status(500).json({ message: "Login failed" });
+  }
+});
+
+app.post("/api/auth/forgot-password", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    const genericMessage =
+      "If an account exists for this email, a password reset link has been generated.";
+
+    if (!email) {
+      return res.status(400).json({ message: "Email required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.json({ message: genericMessage });
+    }
+
+    const resetToken = createPasswordResetToken();
+    user.passwordResetTokenHash = hashPasswordResetToken(resetToken);
+    user.passwordResetExpiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    await user.save();
+
+    res.json({
+      message: genericMessage,
+      resetToken,
+      resetUrl: `/reset-password.html?email=${encodeURIComponent(email)}&token=${encodeURIComponent(
+        resetToken
+      )}`,
+      expiresInMinutes: 30
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Password reset request failed" });
+  }
+});
+
+app.post("/api/auth/reset-password", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    const token = String(req.body.token || "").trim();
+    const password = String(req.body.password || "");
+
+    if (!email || !token || !password) {
+      return res.status(400).json({ message: "Email, token, and new password are required" });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+
+    const user = await User.findOne({
+      email,
+      passwordResetTokenHash: hashPasswordResetToken(token),
+      passwordResetExpiresAt: { $gt: new Date() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Reset link is invalid or expired" });
+    }
+
+    user.password = await bcrypt.hash(password, 10);
+    user.passwordResetTokenHash = null;
+    user.passwordResetExpiresAt = null;
+    await user.save();
+
+    res.json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Password reset failed" });
+  }
+});
+
+app.get("/api/user/state", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json(publicUserState(user));
+  } catch (error) {
+    res.status(500).json({ message: "Unable to load user data" });
+  }
+});
+
+app.put("/api/user/state", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.bookmarks = normalizeBookmarks(req.body.bookmarks);
+    user.searchHistory = normalizeSearchHistory(req.body.searchHistory);
+    await user.save();
+
+    res.json(publicUserState(user));
+  } catch (error) {
+    res.status(500).json({ message: "Unable to save user data" });
+  }
+});
+
+app.post("/api/user/search-history", verifyToken, async (req, res) => {
+  try {
+    const query = String(req.body.query || "").trim().slice(0, 120);
+    if (!query) return res.status(400).json({ message: "Search query required" });
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.searchHistory = normalizeSearchHistory([
+      query,
+      ...(user.searchHistory || []).map((entry) => entry.query)
+    ]);
+    await user.save();
+
+    res.json({ searchHistory: publicUserState(user).searchHistory });
+  } catch (error) {
+    res.status(500).json({ message: "Unable to save search history" });
+  }
+});
+
+app.put("/api/user/bookmarks", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.bookmarks = normalizeBookmarks(req.body.bookmarks);
+    await user.save();
+
+    res.json({ bookmarks: publicUserState(user).bookmarks });
+  } catch (error) {
+    res.status(500).json({ message: "Unable to save bookmarks" });
   }
 });
 

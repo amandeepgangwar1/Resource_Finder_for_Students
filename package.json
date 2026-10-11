@@ -23,7 +23,9 @@
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^7.0.3",
     "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.16",
     "natural": "^6.7.0",
+    "pdf-parse": "^1.1.1",
     "axios": "^1.4.0",
     "compression": "^1.7.4",
     "dotenv": "^16.6.1"

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Profile Settings | Student Resource Finder</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <a class="brand-mark" href="index.html">
+      <span class="source-icon source-cls" style="width: 34px; height: 34px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+      </span>
+      <strong>Student Resource Finder</strong>
+    </a>
+    <nav class="nav-links" aria-label="Primary navigation">
+      <a href="index.html">Home</a>
+      <a href="search.html" class="auth-logged-in">Search</a>
+      <a href="library.html" class="auth-logged-in">Library</a>
+      <a href="dashboard.html" class="auth-logged-in">Dashboard</a>
+      <a href="profile.html" aria-current="page" class="auth-logged-in">Profile</a>
+      <button class="link-button auth-logged-in" data-auth-action="logout" type="button">Logout</button>
+    </nav>
+  </header>
+
+  <main class="dashboard-layout" style="max-width: 800px; margin: 0 auto;">
+    <div class="section-heading">
+      <p class="eyebrow">User Settings</p>
+      <h1>Account Profile</h1>
+      <p>Manage your student profile details and view your recent discovery history.</p>
+    </div>
+
+    <section class="surface">
+      <div class="section-heading">
+        <h2>Your Account Details</h2>
+      </div>
+      <form id="profileForm">
+        <div>
+          <label for="profileName">Full Name</label>
+          <input id="profileName" type="text" placeholder="Your name" required>
+        </div>
+        <div>
+          <label for="profileEmail">Email Address</label>
+          <input id="profileEmail" type="email" disabled style="opacity: 0.7; cursor: not-allowed;">
+        </div>
+        <div>
+          <label for="profileRole">Account Role</label>
+          <input id="profileRole" type="text" disabled style="opacity: 0.7; cursor: not-allowed;">
+        </div>
+        <button type="submit" style="justify-self: start;">Save Changes</button>
+      </form>
+      <p id="profileMessage" class="status-message" aria-live="polite"></p>
+    </section>
+
+    <section class="surface">
+      <div class="section-heading">
+        <p class="eyebrow">Recent Activity</p>
+        <h2>Search History</h2>
+        <p>Recent topics you searched for quick revisit.</p>
+      </div>
+      <ul id="profileHistory" class="compact-list"></ul>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>© 2026 Student Resource Finder Platform by Amandeep Gangwar</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+  <script>
+    if (!localStorage.getItem("token")) {
+      window.location.href = "login.html";
+    }
+  </script>
+</body>
+</html>

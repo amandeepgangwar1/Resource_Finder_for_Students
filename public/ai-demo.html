@@ -13,8 +13,9 @@
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
             min-height: 100vh;
             padding: 20px;
         }
@@ -23,15 +24,16 @@
             max-width: 1200px;
             margin: 0 auto;
             background: white;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
             overflow: hidden;
         }
         
         header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
             color: white;
-            padding: 30px;
+            padding: 36px 30px;
             text-align: center;
         }
         
@@ -65,13 +67,13 @@
         }
         
         .feature-card:hover {
-            border-color: #667eea;
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.2);
+            border-color: #2563eb;
+            box-shadow: 0 5px 20px rgba(37, 99, 235, 0.15);
             transform: translateY(-5px);
         }
         
         .feature-card h3 {
-            color: #667eea;
+            color: #2563eb;
             margin-bottom: 10px;
             display: flex;
             align-items: center;
@@ -83,7 +85,7 @@
         }
         
         .feature-card p {
-            color: #666;
+            color: #64748b;
             font-size: 0.9em;
             line-height: 1.5;
             margin-bottom: 10px;
@@ -92,8 +94,8 @@
         .badge {
             display: inline-block;
             padding: 4px 12px;
-            background: #e7f3ff;
-            color: #0066cc;
+            background: #eff6ff;
+            color: #2563eb;
             border-radius: 20px;
             font-size: 0.8em;
             font-weight: bold;
@@ -119,7 +121,7 @@
         }
         
         .demo-section h2 {
-            color: #667eea;
+            color: #2563eb;
             margin-bottom: 20px;
             font-size: 1.5em;
         }
@@ -129,7 +131,7 @@
             padding: 15px;
             margin-bottom: 15px;
             border-radius: 6px;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid #2563eb;
         }
         
         .demo-item label {
@@ -156,7 +158,7 @@
         }
         
         .demo-item button {
-            background: #667eea;
+            background: #2563eb;
             color: white;
             border: none;
             padding: 10px 20px;
@@ -167,7 +169,7 @@
         }
         
         .demo-item button:hover {
-            background: #764ba2;
+            background: #1d4ed8;
         }
         
         .demo-item button:active {
@@ -199,7 +201,7 @@
             width: 12px;
             height: 12px;
             border-radius: 50%;
-            background: #667eea;
+            background: #2563eb;
             animation: pulse 1.5s infinite;
         }
         
@@ -219,7 +221,7 @@
             background: white;
             padding: 15px;
             border-radius: 6px;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid #2563eb;
         }
         
         .api-item code {
@@ -227,7 +229,7 @@
             padding: 2px 6px;
             border-radius: 3px;
             font-size: 0.85em;
-            color: #667eea;
+            color: #2563eb;
         }
         
         .setup-steps {
@@ -267,6 +269,158 @@
             color: #666;
             border-top: 1px solid #ddd;
         }
+
+        body {
+            padding: 24px;
+            background: #f5f7f5;
+            color: #202824;
+            font-family: "Aptos", "Segoe UI", "Trebuchet MS", sans-serif;
+        }
+
+        .container {
+            max-width: 1180px;
+            border: 1px solid #d9e0db;
+            border-radius: 6px;
+            background: #ffffff;
+            box-shadow: 0 8px 24px rgba(28, 48, 37, 0.07);
+        }
+
+        header {
+            padding: 36px;
+            background: #285c4b;
+            text-align: left;
+        }
+
+        header h1,
+        .feature-card h3,
+        .demo-section h2,
+        .setup-steps h3 {
+            font-family: Georgia, "Times New Roman", serif;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+        }
+
+        .content {
+            padding: 28px;
+        }
+
+        .feature-card,
+        .demo-section,
+        .demo-item,
+        .result,
+        .api-item,
+        .setup-steps {
+            border: 1px solid #d9e0db;
+            border-radius: 5px;
+            background: #f5f7f5;
+            box-shadow: none;
+        }
+
+        .feature-card:hover {
+            border-color: #285c4b;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .feature-card h3,
+        .demo-section h2,
+        .setup-steps h3,
+        .api-item code {
+            color: #285c4b;
+        }
+
+        .feature-card p,
+        .setup-steps ol,
+        footer {
+            color: #65716a;
+        }
+
+        .badge,
+        .badge.free,
+        .badge.fast {
+            border: 1px solid #d9e0db;
+            border-radius: 4px;
+            background: #edf2ee;
+            color: #285c4b;
+        }
+
+        .demo-item {
+            border-left: 3px solid #285c4b;
+            background: #ffffff;
+        }
+
+        .demo-item label {
+            color: #202824;
+        }
+
+        .demo-item input,
+        .demo-item textarea {
+            border-color: #d9e0db;
+            border-radius: 5px;
+        }
+
+        .demo-item button {
+            border-radius: 5px;
+            background: #285c4b;
+        }
+
+        .demo-item button:hover {
+            background: #1d4739;
+        }
+
+        .result.error {
+            border-left: 3px solid #285c4b;
+            background: #edf2ee;
+            color: #202824;
+        }
+
+        .result {
+            border-color: #d9e0db;
+            background: #edf2ee;
+            color: #202824;
+        }
+
+        .loading {
+            background: #285c4b;
+        }
+
+        .api-item {
+            border-left: 3px solid #285c4b;
+        }
+
+        .api-item code,
+        .setup-steps code {
+            border-radius: 3px;
+            background: #edf2ee;
+            color: #285c4b;
+        }
+
+        .setup-steps {
+            border-left: 3px solid #285c4b;
+            background: #edf2ee;
+        }
+
+        footer {
+            background: #ffffff;
+            border-top-color: #d9e0db;
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 12px;
+            }
+
+            header,
+            .content {
+                padding: 22px;
+            }
+
+            header h1 {
+                font-size: 2rem;
+            }
+        }
         
         @media (max-width: 768px) {
             header h1 {
@@ -282,89 +436,89 @@
 <body>
     <div class="container">
         <header>
-            <h1>🤖 AI Features Demo</h1>
-            <p>Student Resource Finder - 10 Free AI Models</p>
+            <h1>AI resource tools</h1>
+            <p>Explore the classification, summary, and question-answering tools available in Resource Finder.</p>
         </header>
         
         <div class="content">
             <!-- Setup Instructions -->
             <div class="setup-steps">
-                <h3>⚡ Quick Start</h3>
+                <h3>Quick start</h3>
                 <ol>
                     <li>Get free API key: <code>https://huggingface.co/settings/tokens</code></li>
                     <li>Add to <code>.env</code>: <code>HF_API_KEY=hf_your_token</code></li>
                     <li>Run: <code>npm install && npm start</code></li>
-                    <li>Test the features below 👇</li>
+                    <li>Try the features below.</li>
                 </ol>
             </div>
             
             <!-- AI Features Overview -->
             <div class="ai-features">
                 <div class="feature-card">
-                    <h3><span>🔍</span> Semantic Search</h3>
+                    <h3>Semantic search</h3>
                     <p>Find similar resources intelligently using TF-IDF and cosine similarity. Returns ranked results by relevance.</p>
                     <span class="badge free">FREE</span>
                     <span class="badge fast">INSTANT</span>
                 </div>
                 
                 <div class="feature-card">
-                    <h3><span>🏷️</span> Auto-Classification</h3>
+                    <h3>Automatic classification</h3>
                     <p>Automatically categorize resources into 8 subjects (Math, Science, Programming, etc.)</p>
                     <span class="badge free">FREE</span>
                     <span class="badge">2-3 sec</span>
                 </div>
                 
                 <div class="feature-card">
-                    <h3><span>📝</span> Summarization</h3>
+                    <h3>Summarization</h3>
                     <p>Generate concise summaries of long documents using AI. Great for previews.</p>
                     <span class="badge free">FREE</span>
                     <span class="badge">3-5 sec</span>
                 </div>
                 
                 <div class="feature-card">
-                    <h3><span>❓</span> Q&A System</h3>
+                    <h3>Question answering</h3>
                     <p>Ask questions about document content and get accurate answers extracted from the text.</p>
                     <span class="badge free">FREE</span>
                     <span class="badge">2-3 sec</span>
                 </div>
                 
                 <div class="feature-card">
-                    <h3><span>🔗</span> Duplicate Detection</h3>
+                    <h3>Duplicate detection</h3>
                     <p>Automatically find and flag duplicate or very similar resources in the database.</p>
                     <span class="badge free">FREE</span>
                     <span class="badge fast">INSTANT</span>
                 </div>
                 
                 <div class="feature-card">
-                    <h3><span>💡</span> Recommendations</h3>
+                    <h3>Recommendations</h3>
                     <p>Get personalized resource recommendations based on user browsing history.</p>
                     <span class="badge free">FREE</span>
                     <span class="badge fast">INSTANT</span>
                 </div>
                 
                 <div class="feature-card">
-                    <h3><span>🛡️</span> Content Moderation</h3>
+                    <h3>Content moderation</h3>
                     <p>Automatically flag inappropriate or low-quality content before upload.</p>
                     <span class="badge free">FREE</span>
                     <span class="badge">1-2 sec</span>
                 </div>
                 
                 <div class="feature-card">
-                    <h3><span>😊</span> Sentiment Analysis</h3>
+                    <h3>Sentiment analysis</h3>
                     <p>Analyze the sentiment of resource reviews and comments (Positive/Negative/Neutral).</p>
                     <span class="badge free">FREE</span>
                     <span class="badge">1-2 sec</span>
                 </div>
                 
                 <div class="feature-card">
-                    <h3><span>🏢</span> Entity Extraction</h3>
+                    <h3>Entity extraction</h3>
                     <p>Automatically extract named entities like people, organizations, and locations.</p>
                     <span class="badge free">FREE</span>
                     <span class="badge">2-3 sec</span>
                 </div>
                 
                 <div class="feature-card">
-                    <h3><span>🔑</span> Keyword Extraction</h3>
+                    <h3>Keyword extraction</h3>
                     <p>Extract important keywords and terms from any text automatically.</p>
                     <span class="badge free">FREE</span>
                     <span class="badge fast">INSTANT</span>
@@ -373,11 +527,11 @@
             
             <!-- Demo Section -->
             <div class="demo-section">
-                <h2>🧪 Try the APIs</h2>
+                <h2>Try the APIs</h2>
                 
                 <!-- Semantic Search Demo -->
                 <div class="demo-item">
-                    <label>🔍 Semantic Search</label>
+                    <label>Semantic search</label>
                     <input type="text" id="searchQuery" placeholder="Enter search query (e.g., 'python programming')" />
                     <button onclick="demoSemanticSearch()">Search</button>
                     <div id="searchResult"></div>
@@ -385,7 +539,7 @@
                 
                 <!-- Keyword Extraction Demo -->
                 <div class="demo-item">
-                    <label>🔑 Extract Keywords</label>
+                    <label>Extract keywords</label>
                     <textarea id="keywordText" placeholder="Enter text to extract keywords from..."></textarea>
                     <button onclick="demoKeywords()">Extract Keywords</button>
                     <div id="keywordResult"></div>
@@ -393,7 +547,7 @@
                 
                 <!-- Sentiment Analysis Demo -->
                 <div class="demo-item">
-                    <label>😊 Sentiment Analysis</label>
+                    <label>Sentiment analysis</label>
                     <textarea id="sentimentText" placeholder="Enter text to analyze sentiment..."></textarea>
                     <button onclick="demoSentiment()">Analyze</button>
                     <div id="sentimentResult"></div>
@@ -401,7 +555,7 @@
                 
                 <!-- Classification Demo -->
                 <div class="demo-item">
-                    <label>🏷️ Auto-Classify</label>
+                    <label>Automatic classification</label>
                     <input type="text" id="classifyText" placeholder="Enter resource title..." />
                     <button onclick="demoClassify()">Classify</button>
                     <div id="classifyResult"></div>
@@ -409,7 +563,7 @@
                 
                 <!-- Summarization Demo -->
                 <div class="demo-item">
-                    <label>📝 Summarize Text</label>
+                    <label>Summarize text</label>
                     <textarea id="summarizeText" placeholder="Enter text to summarize..."></textarea>
                     <button onclick="demoSummarize()">Summarize</button>
                     <div id="summarizeResult"></div>
@@ -418,7 +572,7 @@
             
             <!-- API Endpoints List -->
             <div class="demo-section">
-                <h2>📡 Available API Endpoints</h2>
+                <h2>Available API endpoints</h2>
                 <div class="api-list">
                     <div class="api-item">
                         <strong>POST</strong> <code>/api/ai/semantic-search</code><br>
@@ -470,8 +624,8 @@
         
         <footer>
             <p>2026 Student Resource Finder Platform by Amandeep Gangwar</p>
-            <p>💡 All AI features are completely FREE! No credit card required. Powered by Hugging Face, Natural.js, and built-in ML algorithms.</p>
-            <p>📚 <a href="AI_API_DOCUMENTATION.md" style="color: #667eea; text-decoration: none;">Read Full Documentation</a> | <a href="QUICK_START.md" style="color: #667eea; text-decoration: none;">Quick Start Guide</a></p>
+            <p>AI tools are available without a subscription and are powered by Hugging Face, Natural.js, and built-in machine-learning algorithms.</p>
+            <p><a href="index.html">Return to Student Resource Finder</a></p>
         </footer>
     </div>
     <script src="config.js"></script>
@@ -483,11 +637,11 @@
         }
         
         function showError(elementId, message) {
-            document.getElementById(elementId).innerHTML = `<div class="result error">❌ Error: ${message}</div>`;
+            document.getElementById(elementId).innerHTML = `<div class="result error">Error: ${message}</div>`;
         }
         
         function showSuccess(elementId, data) {
-            document.getElementById(elementId).innerHTML = `<div class="result">✅ ${JSON.stringify(data, null, 2)}</div>`;
+            document.getElementById(elementId).innerHTML = `<div class="result">${JSON.stringify(data, null, 2)}</div>`;
         }
         
         async function demoSemanticSearch() {

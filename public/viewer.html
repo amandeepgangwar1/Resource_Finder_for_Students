@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resource Viewer | Student Resource Finder</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <a class="brand-mark" href="index.html">
+      <span class="source-icon source-pdf" style="width: 34px; height: 34px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+        </svg>
+      </span>
+      <strong>Student Resource Finder</strong>
+    </a>
+    <nav class="nav-links" aria-label="Primary navigation">
+      <a href="index.html">Home</a>
+      <a href="search.html">Search</a>
+      <a href="library.html">Library</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="admin.html">Admin</a>
+      <button class="link-button auth-logged-in" data-auth-action="logout" type="button">Logout</button>
+    </nav>
+  </header>
+
+  <main class="viewer-layout">
+    <section class="surface viewer-main">
+      <div class="section-heading inline-heading">
+        <div>
+          <p class="eyebrow">Document Reader</p>
+          <h1 id="viewerTitle" style="font-size: 1.6rem;">Resource</h1>
+          <p id="viewerMeta" class="resource-meta"></p>
+        </div>
+        <div class="toolbar-actions">
+          <a id="viewerDownload" class="button secondary" href="#">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="15"></line>
+            </svg>
+            Download
+          </a>
+          <a id="viewerOpenFile" class="button secondary" href="#" target="_blank" rel="noopener noreferrer">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
+            Open File
+          </a>
+        </div>
+      </div>
+
+      <div id="viewerFrameWrap" class="pdf-frame-wrap">
+        <iframe id="viewerFrame" title="PDF preview"></iframe>
+      </div>
+      <p id="viewerFallback" class="empty-state" hidden>Interactive inline preview is available for PDFs. Use Open File or Download to view this resource.</p>
+    </section>
+
+    <aside class="surface viewer-side">
+      <section>
+        <div class="section-heading">
+          <p class="eyebrow">Smart Summary</p>
+          <h2>Document Key Takeaways</h2>
+        </div>
+        <p id="viewerSummary" class="resource-summary">Loading summary...</p>
+      </section>
+
+      <section class="side-block">
+        <div class="section-heading">
+          <p class="eyebrow">Interactive Assistant</p>
+          <h2>Ask Document Questions</h2>
+        </div>
+        <form id="askResourceForm">
+          <label class="sr-only" for="resourceQuestion">Question</label>
+          <textarea id="resourceQuestion" rows="3" placeholder="Ask questions about formulas, concepts, or topics in this document..."></textarea>
+          <button type="submit">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+            Ask Document
+          </button>
+        </form>
+        <p id="resourceAnswer" class="status-message" aria-live="polite"></p>
+      </section>
+
+      <section class="side-block">
+        <div class="section-heading">
+          <p class="eyebrow">Peer Feedback</p>
+          <h2>Community Rating & Reviews</h2>
+        </div>
+        <form id="reviewForm">
+          <label for="reviewRating">Rating</label>
+          <select id="reviewRating" required>
+            <option value="5">★★★★★ (5 Stars - Excellent)</option>
+            <option value="4">★★★★☆ (4 Stars - Very Helpful)</option>
+            <option value="3">★★★☆☆ (3 Stars - Average)</option>
+            <option value="2">★★☆☆☆ (2 Stars - Needs Improvement)</option>
+            <option value="1">★☆☆☆☆ (1 Star - Poor)</option>
+          </select>
+          <label for="reviewComment">Review Comment</label>
+          <textarea id="reviewComment" rows="2" placeholder="Share what was helpful or how notes could improve..."></textarea>
+          <button type="submit" class="secondary">Submit Rating</button>
+        </form>
+        <ul id="reviewList" class="compact-list" style="margin-top: 1rem;"></ul>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="app-footer">
+    <p>© 2026 Student Resource Finder Platform by Amandeep Gangwar</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script>
+    if (!localStorage.getItem("token")) {
+      window.location.href = "login.html";
+    }
+  </script>
+  <script src="script.js"></script>
+</body>
+</html>

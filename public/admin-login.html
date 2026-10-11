@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Login | Student Resource Finder</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="auth-page">
+
+<div class="card auth-card">
+  <div style="text-align: center; margin-bottom: 1.5rem;">
+    <span class="source-icon source-pdf" style="width: 44px; height: 44px; margin: 0 auto 0.75rem auto; background: var(--primary-light); color: var(--primary);">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </svg>
+    </span>
+    <p class="eyebrow" style="margin-bottom: 0.25rem;">Staff Access</p>
+    <h2 style="margin: 0; font-size: 1.6rem;">Administrator Login</h2>
+    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">Sign in with authorized staff credentials</p>
+  </div>
+
+  <form id="adminLoginForm">
+    <div class="form-group">
+      <label for="adminEmail">Admin Email</label>
+      <input type="email" id="adminEmail" placeholder="admin@university.edu" required>
+    </div>
+    <div class="form-group">
+      <label for="adminPassword">Password</label>
+      <input type="password" id="adminPassword" placeholder="••••••••" required>
+    </div>
+    <button type="submit" style="width: 100%; justify-content: center; padding: 0.75rem; font-size: 0.95rem;">
+      Login to Console
+    </button>
+  </form>
+
+  <p id="adminLoginMessage" class="status-message" aria-live="polite" style="display: none;"></p>
+
+  <div class="auth-links">
+    <p>Need admin access? <a href="admin-register.html"><strong>Admin Registration</strong></a></p>
+    <p style="font-size: 0.82rem; color: var(--text-muted);">Student or teacher? <a href="login.html">User Portal Login</a></p>
+    <p style="font-size: 0.82rem;"><a href="index.html">← Back to home</a></p>
+  </div>
+</div>
+
+<footer class="app-footer" style="background: transparent; border: 0;">
+  <p>© 2026 Student Resource Finder Platform by Amandeep Gangwar</p>
+</footer>
+
+<script src="config.js"></script>
+<script>
+const API = window.resourceFinderApiBase();
+
+document.getElementById("adminLoginForm").addEventListener("submit", async e => {
+  e.preventDefault();
+
+  const email = document.getElementById("adminEmail").value;
+  const password = document.getElementById("adminPassword").value;
+  const messageEl = document.getElementById("adminLoginMessage");
+
+  messageEl.style.display = "block";
+  messageEl.textContent = "Verifying admin credentials...";
+  messageEl.className = "status-message info";
+
+  try {
+    const res = await fetch(`${API}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      if (data.user.role !== "admin") {
+        messageEl.textContent = "This account does not have administrator privileges. Use the regular student portal.";
+        messageEl.className = "status-message error";
+        return;
+      }
+
+      localStorage.setItem("token", data.token);
+      messageEl.textContent = `✓ Logged in successfully. Welcome, ${data.user.name}!`;
+      messageEl.className = "status-message success";
+      setTimeout(() => {
+        window.location.href = "admin.html";
+      }, 1200);
+    } else {
+      messageEl.textContent = data.message || "Admin login failed";
+      messageEl.className = "status-message error";
+    }
+  } catch (error) {
+    messageEl.textContent = "Network error: " + error.message;
+    messageEl.className = "status-message error";
+  }
+});
+</script>
+
+</body>
+</html>

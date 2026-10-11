@@ -3,83 +3,113 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Admin | Student Resource Finder</title>
+  <title>Admin Console | Student Resource Finder</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="app-header">
-    <div>
-      <p class="eyebrow">Admin</p>
-      <h1>Resource Controls</h1>
-    </div>
+    <a class="brand-mark" href="index.html">
+      <span class="source-icon source-cls" style="width: 34px; height: 34px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+      </span>
+      <strong>Student Resource Finder</strong>
+      <span class="brand-badge" style="background: var(--danger-light); color: var(--danger); border: 1px solid var(--danger-border);">Admin Console</span>
+    </a>
     <nav class="nav-links" aria-label="Primary navigation">
+      <a href="index.html">Home</a>
       <a href="search.html">Search</a>
+      <a href="library.html">Library</a>
       <a href="dashboard.html">Dashboard</a>
       <a href="admin.html" aria-current="page">Admin</a>
-      <a class="auth-logged-out" href="login.html">Login</a>
       <button class="link-button auth-logged-in" data-auth-action="logout" type="button">Logout</button>
     </nav>
   </header>
 
   <main class="admin-layout">
+    <div style="grid-column: 1 / -1;" class="section-heading">
+      <p class="eyebrow">Platform Administration</p>
+      <h1>Administrative Control Center</h1>
+      <p>Moderate student document uploads, detect duplicate files, manage user roles, and export analytics.</p>
+    </div>
+
+    <!-- Admin Stat KPI Cards -->
     <section class="stat-grid" aria-label="Admin summary">
       <article class="stat-card">
-        <span>Resources</span>
+        <span>Total Resources</span>
         <strong id="adminResourceCount">0</strong>
       </article>
       <article class="stat-card">
-        <span>Users</span>
+        <span>Registered Users</span>
         <strong id="adminUserCount">0</strong>
       </article>
       <article class="stat-card">
-        <span>Flagged</span>
+        <span>Flagged / Duplicates</span>
         <strong id="adminFlaggedCount">0</strong>
       </article>
       <article class="stat-card">
-        <span>Top subjects</span>
+        <span>Active Subjects</span>
         <strong id="adminSubjectCount">0</strong>
       </article>
     </section>
 
+    <!-- Main Resource Management Surface -->
     <section class="surface">
       <div class="section-heading inline-heading">
         <div>
-          <p class="eyebrow">Manage</p>
-          <h2>Uploaded resources</h2>
+          <p class="eyebrow">Moderation</p>
+          <h2>Manage Uploaded Documents</h2>
         </div>
         <div class="toolbar-actions">
-          <button id="refreshAdmin" class="secondary" data-admin-control type="button">Refresh</button>
-          <button id="exportResources" class="secondary" data-admin-control type="button">Export CSV</button>
+          <button id="refreshAdmin" class="secondary" data-admin-control type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            Refresh
+          </button>
+          <button id="exportResources" class="secondary" data-admin-control type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="15"></line>
+            </svg>
+            Export CSV
+          </button>
         </div>
       </div>
 
       <div class="toolbar">
         <label class="sr-only" for="adminSearch">Search resources</label>
-        <input id="adminSearch" data-admin-control type="search" placeholder="Search title or subject">
+        <input id="adminSearch" data-admin-control type="search" placeholder="Search by title, subject, or uploader...">
 
         <label class="sr-only" for="adminSubjectFilter">Filter by subject</label>
-        <select id="adminSubjectFilter" data-admin-control>
+        <select id="adminSubjectFilter" data-admin-control style="max-width: 200px;">
           <option value="">All subjects</option>
         </select>
       </div>
 
       <p id="adminMessage" class="status-message" aria-live="polite"></p>
 
-      <form id="adminEditor" class="editor-panel" hidden>
+      <form id="adminEditor" class="editor-panel surface-soft" hidden style="padding: 1.25rem; border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 1.25rem;">
         <input id="editResourceId" type="hidden">
         <div class="section-heading">
-          <p class="eyebrow">Edit selected resource</p>
-          <h2>Update resource</h2>
+          <p class="eyebrow">Quick Edit</p>
+          <h2>Update Resource Details</h2>
         </div>
-        <label for="editTitle">Title</label>
-        <input id="editTitle" type="text" required>
-
-        <label for="editSubject">Subject</label>
-        <input id="editSubject" type="text" required>
-
+        <div>
+          <label for="editTitle">Title</label>
+          <input id="editTitle" type="text" required>
+        </div>
+        <div>
+          <label for="editSubject">Subject</label>
+          <input id="editSubject" type="text" required>
+        </div>
         <div class="actions">
-          <button type="submit">Save changes</button>
+          <button type="submit">Save Changes</button>
           <button id="cancelEdit" class="secondary" type="button">Cancel</button>
         </div>
       </form>
@@ -87,44 +117,69 @@
       <ul id="adminResourceList" class="resource-list"></ul>
     </section>
 
+    <!-- Sidebar Tools -->
     <aside class="surface admin-side">
       <div class="section-heading">
-        <p class="eyebrow">Insights</p>
-        <h2>Subject activity</h2>
+        <p class="eyebrow">Trending</p>
+        <h2>Subject Activity</h2>
       </div>
       <ul id="topSubjects" class="compact-list"></ul>
 
       <div class="side-block">
         <div class="section-heading">
-          <p class="eyebrow">Quality check</p>
-          <h2>Duplicate scan</h2>
+          <p class="eyebrow">Deduplication</p>
+          <h2>Scan Duplicates</h2>
         </div>
-        <button id="scanDuplicates" data-admin-control type="button">Scan duplicates</button>
-        <ul id="duplicateResults" class="compact-list"></ul>
+        <button id="scanDuplicates" data-admin-control type="button" class="secondary" style="width: 100%;">
+          Run Hash & Title Scan
+        </button>
+        <ul id="duplicateResults" class="compact-list" style="margin-top: 0.75rem;"></ul>
+      </div>
+
+      <div class="side-block">
+        <div class="section-heading">
+          <p class="eyebrow">Permissions</p>
+          <h2>User Accounts & Roles</h2>
+        </div>
+        <ul id="adminUserList" class="compact-list"></ul>
+      </div>
+
+      <div class="side-block">
+        <div class="section-heading">
+          <p class="eyebrow">Analytics</p>
+          <h2>Activity Feed</h2>
+        </div>
+        <ul id="adminAnalyticsList" class="compact-list"></ul>
       </div>
     </aside>
   </main>
 
   <div id="duplicateDialog" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="duplicateDialogTitle" hidden>
-    <div class="modal-panel">
+    <div class="modal-panel surface">
       <div class="section-heading">
-        <p class="eyebrow">Duplicate found</p>
-        <h2 id="duplicateDialogTitle">Delete duplicate file?</h2>
+        <p class="eyebrow">Duplicate Alert</p>
+        <h2 id="duplicateDialogTitle">Delete Duplicate File?</h2>
       </div>
       <p id="duplicateDialogMessage" class="modal-message"></p>
       <ul id="duplicateDeleteList" class="compact-list duplicate-delete-list"></ul>
-      <div class="actions modal-actions">
-        <button id="confirmDuplicateDelete" class="danger" type="button">Yes</button>
-        <button id="cancelDuplicateDelete" class="secondary" type="button">No</button>
+      <div class="actions modal-actions" style="margin-top: 1.25rem;">
+        <button id="confirmDuplicateDelete" class="danger" type="button">Delete Duplicate</button>
+        <button id="cancelDuplicateDelete" class="secondary" type="button">Cancel</button>
       </div>
     </div>
   </div>
 
   <footer class="app-footer">
-    <p>2026 Student Resource Finder Platform by Amandeep Gangwar</p>
+    <p>© 2026 Student Resource Finder Platform by Amandeep Gangwar</p>
   </footer>
 
   <script src="config.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) {
+      window.location.href = "login.html";
+    }
+  </script>
   <script src="script.js"></script>
 </body>
 </html>

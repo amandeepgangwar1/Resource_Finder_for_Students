@@ -9,10 +9,15 @@
 </head>
 <body>
   <header class="app-header">
-    <div class="brand-mark">
-      <span aria-hidden="true">📚</span>
+    <a class="brand-mark" href="index.html">
+      <span class="source-icon source-cls" style="width: 34px; height: 34px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+      </span>
       <strong>Student Resource Finder</strong>
-    </div>
+    </a>
     <nav class="nav-links" aria-label="Primary navigation">
       <a href="index.html">Home</a>
       <a href="search.html">Search</a>
@@ -28,21 +33,142 @@
 
   <main class="section-page">
     <section class="surface results-panel page-section-card">
-      <div class="section-heading">
-        <h1>💼 Results</h1>
-        <p>Search online resources and save useful links to your dashboard.</p>
+      <div class="section-heading inline-heading">
+        <div>
+          <p class="eyebrow">Academic Search</p>
+          <h1>Search Results</h1>
+          <p>Explore resources across local peer uploads and global open repositories.</p>
+        </div>
+        <button id="toggleFiltersBtn" type="button" class="button secondary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="21" x2="4" y2="14"></line>
+            <line x1="4" y1="10" x2="4" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12" y2="3"></line>
+            <line x1="20" y1="21" x2="20" y2="16"></line>
+            <line x1="20" y1="12" x2="20" y2="3"></line>
+            <line x1="1" y1="14" x2="7" y2="14"></line>
+            <line x1="9" y1="8" x2="15" y2="8"></line>
+            <line x1="17" y1="16" x2="23" y2="16"></line>
+          </svg>
+          Filters
+        </button>
       </div>
 
       <div class="search-row">
         <label class="sr-only" for="searchInput">Search topic</label>
         <input id="searchInput" type="search" placeholder="Enter subject, topic, or keyword...">
-        <button id="searchButton" type="button">Search</button>
+        <button id="searchButton" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          Search
+        </button>
+      </div>
+
+      <!-- Quick Filter Pills -->
+      <div class="filter-chips" aria-label="Quick Source Selection">
+        <button type="button" class="filter-chip is-active" data-source="">All Sources</button>
+        <button type="button" class="filter-chip" data-source="local">Local Library</button>
+        <button type="button" class="filter-chip" data-source="open-library">Open Library</button>
+        <button type="button" data-source="youtube" class="filter-chip">YouTube</button>
+        <button type="button" class="filter-chip" data-source="coursera">Coursera</button>
+        <button type="button" class="filter-chip" data-source="core">CORE</button>
+      </div>
+
+      <!-- Collapsible Advanced Filters -->
+      <div class="advanced-filters" aria-label="Advanced Search filters" hidden>
+        <label>
+          Subject
+          <select id="subjectFilter">
+            <option value="">All subjects</option>
+          </select>
+        </label>
+        <label>
+          File type
+          <select id="fileTypeFilter">
+            <option value="">All files</option>
+          </select>
+        </label>
+        <label>
+          Source
+          <select id="sourceFilter">
+            <option value="">Local and web</option>
+            <option value="local">Local library</option>
+            <option value="open-library">Open Library</option>
+            <option value="youtube">YouTube</option>
+            <option value="coursera">Coursera</option>
+            <option value="core">CORE</option>
+          </select>
+        </label>
+        <label>
+          From date
+          <input id="dateFromFilter" type="date">
+        </label>
+        <label>
+          To date
+          <input id="dateToFilter" type="date">
+        </label>
+        <label>
+          Minimum rating
+          <select id="ratingFilter">
+            <option value="">Any rating</option>
+            <option value="4">4+ stars</option>
+            <option value="3">3+ stars</option>
+            <option value="2">2+ stars</option>
+          </select>
+        </label>
+        <label>
+          Sort by
+          <select id="sortFilter">
+            <option value="newest">Newest first</option>
+            <option value="rating">Top rated</option>
+            <option value="views">Most viewed</option>
+            <option value="title">Title (A-Z)</option>
+          </select>
+        </label>
+        <label>
+          Per page
+          <select id="pageSize">
+            <option value="6">6</option>
+            <option value="12" selected>12</option>
+            <option value="24">24</option>
+          </select>
+        </label>
+        <label class="check-row">
+          <input id="semanticToggle" type="checkbox">
+          <span>Semantic local search</span>
+        </label>
       </div>
 
       <p id="statusMessage" class="status-message" aria-live="polite"></p>
-      <ul id="results" class="resource-list page-resource-list">
-        <li class="empty-state">Search a topic to see books, videos, courses, papers, and tutorials.</li>
-      </ul>
+
+      <section class="split-results" aria-label="Search results">
+        <div>
+          <div class="section-heading inline-heading compact-heading">
+            <div>
+              <p class="eyebrow">Local Repository</p>
+              <h2>Uploaded Files</h2>
+            </div>
+            <span class="count-pill"><span id="localCount">0</span> items</span>
+          </div>
+          <ul id="localResults" class="resource-list page-resource-list">
+            <li class="empty-state">Search a topic to view campus uploads.</li>
+          </ul>
+          <div id="paginationControls" class="pagination-controls" aria-label="Local results pagination"></div>
+        </div>
+
+        <div>
+          <div class="section-heading compact-heading">
+            <p class="eyebrow">Global Sources</p>
+            <h2>Online Learning</h2>
+          </div>
+          <ul id="results" class="resource-list page-resource-list">
+            <li class="empty-state">Search a topic to explore books, video lectures, and research papers.</li>
+          </ul>
+        </div>
+      </section>
     </section>
   </main>
 
@@ -51,6 +177,11 @@
   </footer>
 
   <script src="config.js"></script>
+  <script>
+    if (!localStorage.getItem("token")) {
+      window.location.href = "login.html";
+    }
+  </script>
   <script src="script.js"></script>
 </body>
 </html>

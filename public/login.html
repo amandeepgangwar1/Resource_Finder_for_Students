@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login</title>
+  <title>Login | Student Resource Finder</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -11,26 +11,48 @@
 <body class="auth-page">
 
 <div class="card auth-card">
+  <div style="text-align: center; margin-bottom: 1.5rem;">
+    <span class="source-icon source-cls" style="width: 44px; height: 44px; margin: 0 auto 0.75rem auto;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+      </svg>
+    </span>
+    <p class="eyebrow" style="margin-bottom: 0.25rem;">Student Portal</p>
+    <h2 style="margin: 0; font-size: 1.6rem;">Welcome back</h2>
+    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">Sign in to access your study library & notes</p>
+  </div>
 
-<p class="eyebrow">Account</p>
-<h2>Login</h2>
+  <form id="loginForm">
+    <div class="form-group">
+      <label for="email">Email address</label>
+      <input type="email" id="email" name="email" placeholder="student@university.edu" autocomplete="email" required>
+    </div>
 
-<form id="loginForm">
-  <input type="email" id="email" placeholder="Email" required><br><br>
-  <input type="password" id="password" placeholder="Password" required><br><br>
-  <button type="submit">Login</button>
-</form>
+    <div class="form-group">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <label for="password" style="margin: 0;">Password</label>
+        <a href="forgot-password.html" style="font-size: 0.8rem; font-weight: 600;">Forgot password?</a>
+      </div>
+      <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
+    </div>
 
-<p id="message"></p>
+    <button type="submit" style="width: 100%; justify-content: center; padding: 0.75rem; font-size: 0.95rem; margin-top: 0.5rem;">
+      Sign in to account
+    </button>
+  </form>
 
-<p><a href="forgot-password.html">Forgot your password?</a></p>
-<p>Don't have an account? <a href="register.html">Register</a></p>
-<p><a href="search.html">Back to search</a></p>
+  <p id="message" class="status-message" aria-live="polite" style="display: none;"></p>
 
+  <div class="auth-links">
+    <p>Don't have an account? <a href="register.html"><strong>Register here</strong></a></p>
+    <p style="font-size: 0.82rem; color: var(--text-muted);">Campus staff? <a href="admin-login.html">Admin Login</a></p>
+    <p style="font-size: 0.82rem;"><a href="index.html">← Back to home</a></p>
+  </div>
 </div>
 
-<footer class="app-footer">
-  <p>2026 Student Resource Finder Platform by Amandeep Gangwar</p>
+<footer class="app-footer" style="background: transparent; border: 0;">
+  <p>© 2026 Student Resource Finder Platform by Amandeep Gangwar</p>
 </footer>
 
 <script src="config.js"></script>
@@ -40,22 +62,41 @@ const API = window.resourceFinderApiBase();
 document.getElementById("loginForm").addEventListener("submit", async e => {
   e.preventDefault();
 
-  const res = await fetch(`${API}/auth/login`, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({
-      email: email.value,
-      password: password.value
-    })
-  });
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const messageEl = document.getElementById("message");
 
-  const data = await res.json();
+  messageEl.style.display = "block";
+  messageEl.className = "status-message info";
+  messageEl.innerText = "Signing in...";
 
-  if(res.ok){
-    localStorage.setItem("token", data.token);
-    window.location.href = "search.html";
-  } else {
-    message.innerText = data.message;
+  try {
+    const res = await fetch(`${API}/auth/login`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!res.headers.get("content-type")?.includes("application/json")) {
+      throw new Error("The login API is unavailable at this address. Start the app backend and open the URL it prints.");
+    }
+
+    const data = await res.json();
+
+    if(res.ok){
+      localStorage.setItem("token", data.token);
+      messageEl.className = "status-message success";
+      messageEl.innerText = "Login successful. Redirecting...";
+      window.location.href = "dashboard.html";
+    } else {
+      messageEl.className = "status-message error";
+      messageEl.innerText = data.message || "Login failed. Check your email and password.";
+    }
+  } catch (error) {
+    messageEl.className = "status-message error";
+    messageEl.innerText = error instanceof TypeError
+      ? "Unable to reach the login API. Start the app backend and open the URL it prints."
+      : error.message;
   }
 });
 </script>

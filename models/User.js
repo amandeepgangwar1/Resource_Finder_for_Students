@@ -55,6 +55,11 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  role: {
+    type: String,
+    enum: ["student", "teacher", "admin"],
+    default: "student"
+  },
   bookmarks: {
     type: [BookmarkSchema],
     default: []
@@ -76,6 +81,6 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: null
   }
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model("User", UserSchema);

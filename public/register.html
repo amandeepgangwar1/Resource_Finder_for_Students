@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Register</title>
+  <title>Register | Student Resource Finder</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -11,26 +11,58 @@
 <body class="auth-page">
 
 <div class="card auth-card">
+  <div style="text-align: center; margin-bottom: 1.5rem;">
+    <span class="source-icon source-cls" style="width: 44px; height: 44px; margin: 0 auto 0.75rem auto;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+      </svg>
+    </span>
+    <p class="eyebrow" style="margin-bottom: 0.25rem;">Get Started</p>
+    <h2 style="margin: 0; font-size: 1.6rem;">Create an account</h2>
+    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">Join fellow students and share study resources</p>
+  </div>
 
-<p class="eyebrow">Account</p>
-<h2>Register</h2>
+  <form id="registerForm">
+    <div class="form-group">
+      <label for="name">Full Name</label>
+      <input type="text" id="name" name="name" placeholder="Alex Morgan" autocomplete="name" required>
+    </div>
 
-<form id="registerForm">
-  <input type="text" id="name" placeholder="Name" required><br><br>
-  <input type="email" id="email" placeholder="Email" required><br><br>
-  <input type="password" id="password" placeholder="Password" required><br><br>
-  <button type="submit">Register</button>
-</form>
+    <div class="form-group">
+      <label for="email">Email address</label>
+      <input type="email" id="email" name="email" placeholder="student@university.edu" autocomplete="email" required>
+    </div>
 
-<p id="message"></p>
+    <div class="form-group">
+      <label for="role">Role</label>
+      <select id="role" aria-label="Account role">
+        <option value="student">Student</option>
+        <option value="teacher">Teacher / Instructor</option>
+      </select>
+    </div>
 
-<p>Already have an account? <a href="login.html">Login</a></p>
-<p><a href="search.html">Back to search</a></p>
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="Create a strong password" autocomplete="new-password" required>
+    </div>
 
+    <button type="submit" style="width: 100%; justify-content: center; padding: 0.75rem; font-size: 0.95rem; margin-top: 0.5rem;">
+      Create Account
+    </button>
+  </form>
+
+  <p id="message" class="status-message" aria-live="polite" style="display: none;"></p>
+
+  <div class="auth-links">
+    <p>Already have an account? <a href="login.html"><strong>Sign in</strong></a></p>
+    <p style="font-size: 0.82rem; color: var(--text-muted);">Administrator? <a href="admin-register.html">Create admin account</a></p>
+    <p style="font-size: 0.82rem;"><a href="index.html">← Back to home</a></p>
+  </div>
 </div>
 
-<footer class="app-footer">
-  <p>2026 Student Resource Finder Platform by Amandeep Gangwar</p>
+<footer class="app-footer" style="background: transparent; border: 0;">
+  <p>© 2026 Student Resource Finder Platform by Amandeep Gangwar</p>
 </footer>
 
 <script src="config.js"></script>
@@ -40,23 +72,42 @@ const API = window.resourceFinderApiBase();
 document.getElementById("registerForm").addEventListener("submit", async function(e) {
   e.preventDefault();
 
-  const name = document.getElementById("name").value;
-  const email = document.getElementById("email").value;
+  const name = document.getElementById("name").value.trim();
+  const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
+  const message = document.getElementById("message");
 
-  const res = await fetch(`${API}/auth/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, password })
-  });
+  message.style.display = "block";
+  message.className = "status-message info";
+  message.textContent = "Creating your account...";
 
-  const data = await res.json();
+  try {
+    const res = await fetch(`${API}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password, role: document.getElementById("role").value })
+    });
 
-  if (res.ok) {
-    alert("Registration Successful!");
-    window.location.href = "login.html";
-  } else {
-    document.getElementById("message").innerText = data.message;
+    if (!res.headers.get("content-type")?.includes("application/json")) {
+      throw new Error("The registration API is unavailable at this address. Start the app backend and open the URL it prints.");
+    }
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Registration failed. Please try again.");
+    }
+
+    message.className = "status-message success";
+    message.textContent = "Registration successful! Redirecting to login...";
+    setTimeout(() => {
+      window.location.href = "login.html";
+    }, 1200);
+  } catch (error) {
+    message.className = "status-message error";
+    message.textContent = error instanceof TypeError
+      ? "Unable to reach the registration API. Start the app backend and open the URL it prints."
+      : error.message;
   }
 });
 </script>

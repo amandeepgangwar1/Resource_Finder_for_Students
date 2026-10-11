@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Register | Student Resource Finder</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="auth-page">
+
+<div class="card auth-card">
+  <div style="text-align: center; margin-bottom: 1.5rem;">
+    <span class="source-icon source-pdf" style="width: 44px; height: 44px; margin: 0 auto 0.75rem auto; background: var(--primary-light); color: var(--primary);">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </svg>
+    </span>
+    <p class="eyebrow" style="margin-bottom: 0.25rem;">Staff Access</p>
+    <h2 style="margin: 0; font-size: 1.6rem;">Admin Registration</h2>
+    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">Create a campus staff administrative account</p>
+  </div>
+
+  <form id="adminRegisterForm">
+    <div class="form-group">
+      <label for="adminName">Full Name</label>
+      <input type="text" id="adminName" placeholder="Admin Name" required>
+    </div>
+    <div class="form-group">
+      <label for="adminEmail">Staff Email</label>
+      <input type="email" id="adminEmail" placeholder="admin@university.edu" required>
+    </div>
+    <div class="form-group">
+      <label for="adminPassword">Password</label>
+      <input type="password" id="adminPassword" placeholder="Minimum 6 characters" required>
+    </div>
+    <div class="form-group">
+      <label for="adminConfirmPassword">Confirm Password</label>
+      <input type="password" id="adminConfirmPassword" placeholder="Repeat password" required>
+    </div>
+    <label class="check-row" style="margin-top: 0.25rem;">
+      <input type="checkbox" id="adminAgree" required>
+      <span style="font-size: 0.82rem; font-weight: 500;">I agree to administrative guidelines & duties</span>
+    </label>
+    <button type="submit" style="width: 100%; justify-content: center; padding: 0.75rem; font-size: 0.95rem; margin-top: 0.5rem;">
+      Register Administrator
+    </button>
+  </form>
+
+  <p id="adminMessage" class="status-message" aria-live="polite" style="display: none;"></p>
+
+  <div class="auth-links">
+    <p>Already have an admin account? <a href="admin-login.html"><strong>Admin Login</strong></a></p>
+    <p style="font-size: 0.82rem; color: var(--text-muted);">Student or teacher? <a href="register.html">Student/Teacher Registration</a></p>
+    <p style="font-size: 0.82rem;"><a href="index.html">← Back to home</a></p>
+  </div>
+</div>
+
+<footer class="app-footer" style="background: transparent; border: 0;">
+  <p>© 2026 Student Resource Finder Platform by Amandeep Gangwar</p>
+</footer>
+
+<script src="config.js"></script>
+<script>
+const API = window.resourceFinderApiBase();
+
+document.getElementById("adminRegisterForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+
+  const name = document.getElementById("adminName").value.trim();
+  const email = document.getElementById("adminEmail").value.trim();
+  const password = document.getElementById("adminPassword").value;
+  const confirmPassword = document.getElementById("adminConfirmPassword").value;
+  const messageEl = document.getElementById("adminMessage");
+
+  messageEl.style.display = "block";
+
+  if (password !== confirmPassword) {
+    messageEl.textContent = "Passwords do not match!";
+    messageEl.className = "status-message error";
+    return;
+  }
+
+  messageEl.textContent = "Creating administrator account...";
+  messageEl.className = "status-message info";
+
+  try {
+    const res = await fetch(`${API}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        name, 
+        email, 
+        password, 
+        role: "admin" 
+      })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      messageEl.textContent = `✓ Admin account created successfully! Redirecting to login...`;
+      messageEl.className = "status-message success";
+      setTimeout(() => {
+        window.location.href = "admin-login.html";
+      }, 1500);
+    } else {
+      messageEl.textContent = data.message || "Registration failed";
+      messageEl.className = "status-message error";
+    }
+  } catch (error) {
+    messageEl.textContent = "Network error: " + error.message;
+    messageEl.className = "status-message error";
+  }
+});
+</script>
+
+</body>
+</html>

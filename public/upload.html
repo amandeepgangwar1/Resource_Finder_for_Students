@@ -3,16 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Upload Notes | Student Resource Finder</title>
+  <title>Share a Resource | Student Resource Finder</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="app-header">
-    <div class="brand-mark">
-      <span aria-hidden="true">📚</span>
+    <a class="brand-mark" href="index.html">
+      <span class="source-icon source-cls" style="width: 34px; height: 34px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+      </span>
       <strong>Student Resource Finder</strong>
-    </div>
+    </a>
     <nav class="nav-links" aria-label="Primary navigation">
       <a href="index.html">Home</a>
       <a href="search.html">Search</a>
@@ -27,26 +32,76 @@
   </header>
 
   <main class="section-page">
-    <section class="surface upload-panel page-section-card" id="uploadSection">
+    <section class="surface upload-panel page-section-card" id="uploadSection" style="max-width: 760px; margin: 0 auto;">
       <div class="section-heading">
-        <h1>📤 Upload Notes</h1>
-        <p>Add PDFs, documents, spreadsheets, code files, or other study resources.</p>
+        <p class="eyebrow">Contribution</p>
+        <h1>Share Study Notes & Files</h1>
+        <p>Upload lecture notes, past exams, or reference guides to share with classmates and faculty.</p>
       </div>
 
       <form id="uploadForm" enctype="multipart/form-data">
-        <label for="resourceTitle">Title</label>
-        <input id="resourceTitle" type="text" name="title" placeholder="Enter resource title">
+        <div>
+          <label for="resourceTitle">Document Title <span style="color: var(--danger);">*</span></label>
+          <input id="resourceTitle" type="text" name="title" placeholder="e.g., CS101 Algorithms & Complexity - Midterm Revision Notes" required>
+        </div>
 
-        <label for="resourceSubject">Subject</label>
-        <input id="resourceSubject" type="text" name="subject" placeholder="Enter subject name">
+        <div>
+          <label for="resourceSubject">Subject / Course <span style="color: var(--danger);">*</span></label>
+          <input id="resourceSubject" type="text" name="subject" placeholder="e.g., Computer Science, Linear Algebra, Organic Chemistry" required>
+        </div>
 
-        <label for="resourceFile">Resource file</label>
-        <input id="resourceFile" type="file" name="file" required>
+        <div>
+          <label for="resourceFile">Upload Document <span style="color: var(--danger);">*</span></label>
+          
+          <!-- Modern Drag & Drop Dropzone -->
+          <div class="dropzone" id="dropzone">
+            <input id="resourceFile" type="file" name="file" class="dropzone-input" required>
+            <div class="dropzone-content" id="dropzoneContent">
+              <div class="dropzone-icon-wrap">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </div>
+              <p class="dropzone-title"><strong>Click to browse</strong> or drag & drop your document</p>
+              <p class="dropzone-hint">PDF, DOCX, PPTX, XLSX, Images, Code & ZIP files (up to 100 MB)</p>
+            </div>
+            
+            <div class="file-preview-bar" id="filePreviewBar" hidden>
+              <span class="source-icon source-pdf" style="width: 36px; height: 36px;">📄</span>
+              <div class="file-preview-info">
+                <span class="file-preview-name" id="filePreviewName">Filename.pdf</span>
+                <span class="file-preview-size" id="filePreviewSize">0 MB</span>
+              </div>
+              <button type="button" class="file-remove-btn" id="fileRemoveBtn" aria-label="Remove selected file">✕</button>
+            </div>
+          </div>
+        </div>
 
-        <button type="submit">Upload PDF</button>
+        <div id="duplicateWarning" class="status-message info" hidden></div>
+
+        <button type="submit" style="width: 100%; justify-content: center; padding: 0.8rem; font-size: 1rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          Upload Resource
+        </button>
       </form>
 
       <p id="statusMessage" class="status-message" aria-live="polite"></p>
+
+      <div class="upload-tips">
+        <strong style="color: var(--text); display: block; margin-bottom: 0.5rem;">Guidelines for Quality Notes</strong>
+        <ul>
+          <li>Use informative, descriptive titles mentioning course names and chapters.</li>
+          <li>Specify the exact subject to assist peers during targeted search.</li>
+          <li>High-clarity PDFs and organized documents earn higher community ratings.</li>
+          <li>Ensure you hold the right to share the study material.</li>
+        </ul>
+      </div>
     </section>
   </main>
 
@@ -55,6 +110,11 @@
   </footer>
 
   <script src="config.js"></script>
+  <script>
+    if (!localStorage.getItem("token")) {
+      window.location.href = "login.html";
+    }
+  </script>
   <script src="script.js"></script>
 </body>
 </html>

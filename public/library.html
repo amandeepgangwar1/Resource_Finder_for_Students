@@ -3,16 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Local Library | Student Resource Finder</title>
+  <title>Campus Library | Student Resource Finder</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="app-header">
-    <div class="brand-mark">
-      <span aria-hidden="true">📚</span>
+    <a class="brand-mark" href="index.html">
+      <span class="source-icon source-cls" style="width: 34px; height: 34px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+      </span>
       <strong>Student Resource Finder</strong>
-    </div>
+    </a>
     <nav class="nav-links" aria-label="Primary navigation">
       <a href="index.html">Home</a>
       <a href="search.html">Search</a>
@@ -30,10 +35,11 @@
     <section class="surface library-panel page-section-card" id="libraryPanel">
       <div class="section-heading inline-heading">
         <div>
-          <h1>📁 Local Library</h1>
-          <p>Browse uploaded study files.</p>
+          <p class="eyebrow">Repository</p>
+          <h1>Campus Document Library</h1>
+          <p>Browse and preview notes, study materials, and past papers uploaded by students and faculty.</p>
         </div>
-        <span class="count-pill"><span id="localCount">0</span> items</span>
+        <span class="count-pill"><span id="localCount">0</span> total files</span>
       </div>
       <ul id="localResults" class="resource-list page-resource-list"></ul>
     </section>
@@ -44,6 +50,11 @@
   </footer>
 
   <script src="config.js"></script>
+  <script>
+    if (!localStorage.getItem("token")) {
+      window.location.href = "login.html";
+    }
+  </script>
   <script src="script.js"></script>
 </body>
 </html>

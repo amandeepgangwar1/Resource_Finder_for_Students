@@ -12,13 +12,29 @@ function cleanOrigin(value) {
 function clientConfig(apiOrigin) {
   return `(function () {
   window.RESOURCE_FINDER_API_ORIGIN = ${JSON.stringify(apiOrigin)};
+  const DEFAULT_REMOTE_API_ORIGIN = "https://student-resource-finder-api.onrender.com";
 
   function cleanOrigin(value) {
     return String(value || "").trim().replace(/\\/+$/, "");
   }
 
+  function isLocalHost(hostname) {
+    return ["localhost", "127.0.0.1", "::1", ""].includes(hostname);
+  }
+
   window.resourceFinderApiOrigin = function () {
-    return cleanOrigin(window.RESOURCE_FINDER_API_ORIGIN);
+    const configuredOrigin = cleanOrigin(window.RESOURCE_FINDER_API_ORIGIN);
+    if (configuredOrigin) return configuredOrigin;
+
+    if (
+      typeof window !== "undefined" &&
+      !isLocalHost(window.location.hostname) &&
+      !window.location.hostname.endsWith("onrender.com")
+    ) {
+      return DEFAULT_REMOTE_API_ORIGIN;
+    }
+
+    return "";
   };
 
   window.resourceFinderApiBase = function () {
@@ -42,7 +58,7 @@ fs.writeFileSync(path.join(outputDir, "config.js"), clientConfig(apiOrigin));
 
 if (!apiOrigin) {
   console.warn(
-    "FRONTEND_API_ORIGIN is empty. The Vercel frontend will call APIs on its own domain."
+    "FRONTEND_API_ORIGIN is empty. Non-local static hosts will use the default Render backend origin."
   );
 }
 

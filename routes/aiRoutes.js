@@ -23,6 +23,29 @@ const {
 
 const semanticSearch = new SemanticSearch();
 
+function normalizeRole(value) {
+  return ["student", "teacher", "admin"].includes(value) ? value : "student";
+}
+
+function requireAdmin(req, res, next) {
+  User.findById(req.user.id)
+    .then((user) => {
+      if (!user) {
+        res.status(404).json({ message: "User not found" });
+        return;
+      }
+
+      if (normalizeRole(user.role) !== "admin") {
+        res.status(403).json({ message: "Admin role required" });
+        return;
+      }
+
+      req.currentUser = user;
+      next();
+    })
+    .catch(() => res.status(500).json({ message: "Unable to verify permissions" }));
+}
+
 function toResourceObject(resource) {
   return resource.toObject ? resource.toObject() : resource;
 }
@@ -223,7 +246,7 @@ router.post("/api/ai/qa", async (req, res) => {
 });
 
 // ===================== 5. DETECT DUPLICATES =====================
-router.get("/api/ai/duplicates", verifyToken, async (req, res) => {
+router.get("/api/ai/duplicates", verifyToken, requireAdmin, async (req, res) => {
   try {
     const resources = await Resource.find();
 
@@ -252,7 +275,8 @@ router.get("/api/ai/duplicates", verifyToken, async (req, res) => {
 router.get("/api/ai/recommendations", verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    await User.findById(userId);
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     let userHistory = [];
     if (req.query.history) {
@@ -262,6 +286,24 @@ router.get("/api/ai/recommendations", verifyToken, async (req, res) => {
         return res.status(400).json({ message: "Invalid history JSON" });
       }
     }
+    if (!userHistory.length) {
+      const bookmarkHistory = (user.bookmarks || []).map((bookmark) => ({
+        _id: bookmark.id,
+        title: bookmark.title,
+        subject: bookmark.subject,
+        keywords: [bookmark.title, bookmark.subject, bookmark.source]
+          .filter(Boolean)
+          .join(" ")
+          .split(/\s+/)
+      }));
+      const searchHistory = (user.searchHistory || []).map((entry) => ({
+        title: entry.query,
+        subject: entry.query,
+        keywords: String(entry.query || "").split(/\s+/)
+      }));
+      userHistory = [...bookmarkHistory, ...searchHistory];
+    }
+
     const allResources = await Resource.find();
 
     const recommendations = getRecommendations(userHistory, allResources);
@@ -360,7 +402,7 @@ router.post("/api/ai/keywords", async (req, res) => {
 });
 
 // ===================== 11. AI INSIGHTS DASHBOARD =====================
-router.get("/api/ai/insights", verifyToken, async (req, res) => {
+router.get("/api/ai/insights", verifyToken, requireAdmin, async (req, res) => {
   try {
     const resources = await Resource.find();
     const totalResources = resources.length;

@@ -1,5 +1,29 @@
 const mongoose = require("mongoose");
 
+const ReviewSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    },
+    userName: String,
+    rating: {
+      type: Number,
+      min: 1,
+      max: 5
+    },
+    comment: {
+      type: String,
+      default: ""
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  },
+  { _id: false }
+);
+
 const ResourceSchema = new mongoose.Schema({
   title: String,
   subject: String,
@@ -9,11 +33,24 @@ const ResourceSchema = new mongoose.Schema({
   originalName: String,
   mimeType: String,
   fileSize: Number,
+  fileHash: {
+    type: String,
+    default: null,
+    index: true
+  },
   fileCategory: {
     type: String,
     default: "PDF"
   },
   storageFolder: String,
+  pageCount: {
+    type: Number,
+    default: null
+  },
+  extractedText: {
+    type: String,
+    default: ""
+  },
   // AI-generated fields
   classification: {
     type: String,
@@ -49,11 +86,28 @@ const ResourceSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  downloadCount: {
+    type: Number,
+    default: 0
+  },
   rating: {
     type: Number,
     default: 0,
     min: 0,
     max: 5
+  },
+  ratingCount: {
+    type: Number,
+    default: 0
+  },
+  reviews: {
+    type: [ReviewSchema],
+    default: []
+  },
+  uploadedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null
   },
   createdAt: {
     type: Date,

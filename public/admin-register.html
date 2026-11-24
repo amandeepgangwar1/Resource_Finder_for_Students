@@ -25,25 +25,47 @@
   <form id="adminRegisterForm">
     <div class="form-group">
       <label for="adminName">Full Name</label>
-      <input type="text" id="adminName" placeholder="Admin Name" required>
+      <input type="text" id="adminName" placeholder="Admin Name" required minlength="2" maxlength="70" autocomplete="name">
     </div>
+
     <div class="form-group">
       <label for="adminEmail">Staff Email</label>
-      <input type="email" id="adminEmail" placeholder="admin@university.edu" required>
+      <input type="email" id="adminEmail" placeholder="admin@university.edu" required autocomplete="email">
     </div>
+
     <div class="form-group">
       <label for="adminPassword">Password</label>
-      <input type="password" id="adminPassword" placeholder="Minimum 6 characters" required>
+      <div class="password-input-wrap">
+        <input type="password" id="adminPassword" placeholder="Min 8 chars, mixed case & digit" required minlength="8" autocomplete="new-password">
+        <button type="button" class="password-toggle-btn" id="toggleAdminRegPwdBtn" aria-label="Toggle password">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+      </div>
     </div>
+
     <div class="form-group">
       <label for="adminConfirmPassword">Confirm Password</label>
-      <input type="password" id="adminConfirmPassword" placeholder="Repeat password" required>
+      <div class="password-input-wrap">
+        <input type="password" id="adminConfirmPassword" placeholder="Repeat password" required minlength="8" autocomplete="new-password">
+        <button type="button" class="password-toggle-btn" id="toggleAdminConfirmBtn" aria-label="Toggle password">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+      </div>
+      <p id="matchErr" style="font-size: 0.78rem; color: var(--danger); margin: 0.2rem 0 0; display: none;">Passwords do not match.</p>
     </div>
-    <label class="check-row" style="margin-top: 0.25rem;">
+
+    <label class="checkbox-wrap" style="margin-top: 0.25rem;">
       <input type="checkbox" id="adminAgree" required>
-      <span style="font-size: 0.82rem; font-weight: 500;">I agree to administrative guidelines & duties</span>
+      <span>I agree to administrative guidelines & duties</span>
     </label>
-    <button type="submit" style="width: 100%; justify-content: center; padding: 0.75rem; font-size: 0.95rem; margin-top: 0.5rem;">
+
+    <button type="submit" id="submitBtn" style="width: 100%; justify-content: center; padding: 0.75rem; font-size: 0.95rem; margin-top: 0.5rem;">
       Register Administrator
     </button>
   </form>
@@ -65,14 +87,42 @@
 <script>
 const API = window.resourceFinderApiBase();
 
+function setupToggle(btnId, inputId) {
+  const btn = document.getElementById(btnId);
+  const input = document.getElementById(inputId);
+  btn.addEventListener("click", () => {
+    const isPwd = input.type === "password";
+    input.type = isPwd ? "text" : "password";
+    btn.innerHTML = isPwd
+      ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`
+      : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+  });
+}
+
+setupToggle("toggleAdminRegPwdBtn", "adminPassword");
+setupToggle("toggleAdminConfirmBtn", "adminConfirmPassword");
+
+const pwdInput = document.getElementById("adminPassword");
+const confirmInput = document.getElementById("adminConfirmPassword");
+const matchErr = document.getElementById("matchErr");
+
+confirmInput.addEventListener("input", () => {
+  if (confirmInput.value && pwdInput.value !== confirmInput.value) {
+    matchErr.style.display = "block";
+  } else {
+    matchErr.style.display = "none";
+  }
+});
+
 document.getElementById("adminRegisterForm").addEventListener("submit", async function(e) {
   e.preventDefault();
 
   const name = document.getElementById("adminName").value.trim();
   const email = document.getElementById("adminEmail").value.trim();
-  const password = document.getElementById("adminPassword").value;
-  const confirmPassword = document.getElementById("adminConfirmPassword").value;
+  const password = pwdInput.value;
+  const confirmPassword = confirmInput.value;
   const messageEl = document.getElementById("adminMessage");
+  const submitBtn = document.getElementById("submitBtn");
 
   messageEl.style.display = "block";
 
@@ -84,6 +134,7 @@ document.getElementById("adminRegisterForm").addEventListener("submit", async fu
 
   messageEl.textContent = "Creating administrator account...";
   messageEl.className = "status-message info";
+  submitBtn.disabled = true;
 
   try {
     const res = await fetch(`${API}/auth/register`, {
@@ -100,11 +151,14 @@ document.getElementById("adminRegisterForm").addEventListener("submit", async fu
     const data = await res.json();
 
     if (res.ok) {
-      messageEl.textContent = `✓ Admin account created successfully! Redirecting to login...`;
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+      }
+      messageEl.textContent = `✓ Admin account created successfully! Redirecting...`;
       messageEl.className = "status-message success";
       setTimeout(() => {
-        window.location.href = "admin-login.html";
-      }, 1500);
+        window.location.href = "admin.html";
+      }, 1000);
     } else {
       messageEl.textContent = data.message || "Registration failed";
       messageEl.className = "status-message error";
@@ -112,6 +166,8 @@ document.getElementById("adminRegisterForm").addEventListener("submit", async fu
   } catch (error) {
     messageEl.textContent = "Network error: " + error.message;
     messageEl.className = "status-message error";
+  } finally {
+    submitBtn.disabled = false;
   }
 });
 </script>

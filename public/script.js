@@ -2,7 +2,7 @@ const API_BASE =
   typeof window !== "undefined" && typeof window.resourceFinderApiBase === "function"
     ? window.resourceFinderApiBase()
     : "/api";
-let token = localStorage.getItem("token");
+let token = localStorage.getItem("token") || sessionStorage.getItem("token");
 
 const state = {
   adminResources: [],
@@ -187,10 +187,15 @@ function renderAuthControls() {
     const required = element.dataset.roleRequired.split(",").map((role) => role.trim());
     element.hidden = !state.currentUser || !required.includes(state.currentUser.role);
   });
+
+  if (typeof updateSidebarUserState === "function") {
+    updateSidebarUserState();
+  }
 }
 
 function clearAuthSession() {
   localStorage.removeItem("token");
+  sessionStorage.removeItem("token");
   localStorage.removeItem("bookmarks");
   localStorage.removeItem("searchHistory");
   token = null;
@@ -208,10 +213,18 @@ async function fetchJson(url, options = {}) {
     if (
       response.status === 401 ||
       data.message === "Invalid token" ||
-      data.message === "Invalid or expired login session"
+      data.message === "Invalid or expired login session" ||
+      data.message === "No token, access denied"
     ) {
       clearAuthSession();
-      throw new Error("Your login session expired. Please log in again.");
+      const isProtected = ["dashboard.html", "profile.html", "upload.html", "admin.html"].some((p) =>
+        window.location.pathname.endsWith(p)
+      );
+      if (isProtected) {
+        const pageName = window.location.pathname.split("/").pop() || "dashboard.html";
+        window.location.href = `login.html?redirect=${encodeURIComponent(pageName)}`;
+      }
+      throw new Error("Your login session has expired. Please log in again.");
     }
 
     throw new Error(data.message || `Request failed with ${response.status}`);
@@ -2124,43 +2137,323 @@ function renderProfileHistory() {
   });
 }
 
-function initProfile() {
+async function initProfile() {
   const form = byId("profileForm");
   if (!form) return;
 
   if (!token) {
-    window.location.href = "login.html";
+    window.location.href = "login.html?redirect=profile.html";
     return;
   }
 
-  const hydrate = () => {
-    if (!state.currentUser) return;
-    byId("profileName").value = state.currentUser.name || "";
-    byId("profileEmail").value = state.currentUser.email || "";
-    byId("profileRole").value = state.currentUser.role || "student";
+  // Setup password toggles
+  function setupPwdToggle(btnId, inputId) {
+    const btn = byId(btnId);
+    const input = byId(inputId);
+    if (!btn || !input) return;
+
+    btn.addEventListener("click", () => {
+      const isPwd = input.type === "password";
+      input.type = isPwd ? "text" : "password";
+      btn.innerHTML = isPwd
+        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`
+        : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+    });
+  }
+
+  setupPwdToggle("toggleCurrentBtn", "currentPassword");
+  setupPwdToggle("toggleNewBtn", "newPassword");
+  setupPwdToggle("toggleConfirmNewBtn", "confirmNewPassword");
+
+  // Setup Delete Modal
+  const deleteModal = byId("deleteModal");
+  const openDeleteBtn = byId("openDeleteModalBtn");
+  const closeDeleteBtn = byId("closeDeleteModalBtn");
+  const deleteForm = byId("deleteAccountForm");
+  const deleteError = byId("deleteModalError");
+
+  if (openDeleteBtn && deleteModal) {
+    openDeleteBtn.addEventListener("click", () => {
+      deleteModal.style.display = "flex";
+      if (deleteError) deleteError.style.display = "none";
+      const pwd = byId("deleteConfirmPassword");
+      if (pwd) {
+        pwd.value = "";
+        pwd.focus();
+      }
+    });
+  }
+
+  if (closeDeleteBtn && deleteModal) {
+    closeDeleteBtn.addEventListener("click", () => {
+      deleteModal.style.display = "none";
+    });
+    deleteModal.addEventListener("click", (e) => {
+      if (e.target === deleteModal) deleteModal.style.display = "none";
+    });
+  }
+
+  // Hydrate profile data
+  const hydrate = (user) => {
+    if (!user) return;
+    const nameInput = byId("profileName");
+    const emailInput = byId("profileEmail");
+    const instInput = byId("profileInstitution");
+    const fieldInput = byId("profileField");
+    const bioInput = byId("profileBio");
+
+    if (nameInput) nameInput.value = user.name || "";
+    if (emailInput) emailInput.value = user.email || "";
+    if (instInput) instInput.value = user.institution || "";
+    if (fieldInput) fieldInput.value = user.fieldOfStudy || "";
+    if (bioInput) bioInput.value = user.bio || "";
+
+    // Sidebar
+    const avatar = byId("sidebarAvatar");
+    if (avatar) avatar.textContent = user.name ? user.name.trim()[0].toUpperCase() : "U";
+
+    setText("sidebarName", user.name || "Student");
+    setText("sidebarEmail", user.email || "");
+    setText("sidebarRole", user.role || "student");
+    setText("joinedDate", formatDate(user.createdAt));
+    setText("lastLoginDate", user.lastLoginAt ? formatDate(user.lastLoginAt) : "Active now");
+    setText("uploadedCountBadge", String(user.uploadedCount || 0));
+
+    // Email verification badge
+    const badge = byId("verificationBadge");
+    const resendBtn = byId("resendVerificationBtn");
+    if (badge) {
+      if (user.isEmailVerified) {
+        badge.className = "badge-verified";
+        badge.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> Verified`;
+        if (resendBtn) resendBtn.style.display = "none";
+      } else {
+        badge.className = "badge-unverified";
+        badge.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> Unverified`;
+        if (resendBtn) resendBtn.style.display = "block";
+      }
+    }
+
     renderProfileHistory();
   };
 
-  hydrate();
+  // Fetch full profile from server
+  try {
+    const profileData = await fetchJson(`${API_BASE}/user/profile`, {
+      headers: { Authorization: token }
+    });
+    state.currentUser = profileData;
+    hydrate(profileData);
+  } catch (err) {
+    if (state.currentUser) hydrate(state.currentUser);
+  }
 
+  // Resend verification email
+  const resendBtn = byId("resendVerificationBtn");
+  const resendMsg = byId("resendMessage");
+  if (resendBtn) {
+    resendBtn.addEventListener("click", async () => {
+      resendBtn.disabled = true;
+      if (resendMsg) {
+        resendMsg.style.display = "block";
+        resendMsg.className = "status-message info";
+        resendMsg.textContent = "Sending verification email...";
+      }
+
+      try {
+        const result = await fetchJson(`${API_BASE}/auth/resend-verification`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token
+          },
+          body: JSON.stringify({ email: state.currentUser?.email })
+        });
+        if (resendMsg) {
+          resendMsg.className = "status-message success";
+          resendMsg.textContent = result.message || "Verification email sent!";
+        }
+      } catch (error) {
+        if (resendMsg) {
+          resendMsg.className = "status-message error";
+          resendMsg.textContent = error.message;
+        }
+      } finally {
+        resendBtn.disabled = false;
+      }
+    });
+  }
+
+  // Submit Profile Form
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const saveBtn = byId("saveProfileBtn");
+    const msg = byId("profileMessage");
+
+    if (saveBtn) saveBtn.disabled = true;
+    if (msg) {
+      msg.style.display = "block";
+      msg.className = "status-message info";
+      msg.textContent = "Saving profile...";
+    }
+
     try {
-      const data = await fetchJson(`${API_BASE}/user/profile`, {
+      const payload = {
+        name: byId("profileName").value.trim(),
+        email: byId("profileEmail").value.trim(),
+        institution: byId("profileInstitution").value.trim(),
+        fieldOfStudy: byId("profileField").value.trim(),
+        bio: byId("profileBio").value.trim()
+      };
+
+      const updated = await fetchJson(`${API_BASE}/user/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: token
         },
-        body: JSON.stringify({ name: byId("profileName").value })
+        body: JSON.stringify(payload)
       });
-      state.currentUser = data;
-      hydrate();
-      showStatus("Profile saved.", "success");
+
+      state.currentUser = { ...state.currentUser, ...updated };
+      hydrate(state.currentUser);
+
+      if (msg) {
+        msg.className = "status-message success";
+        msg.textContent = "Profile updated successfully!";
+        setTimeout(() => { msg.style.display = "none"; }, 3500);
+      }
+      showToast("Profile details saved.", "success");
     } catch (error) {
-      showStatus(error.message || "Profile update failed.", "error");
+      if (msg) {
+        msg.className = "status-message error";
+        msg.textContent = error.message;
+      }
+    } finally {
+      if (saveBtn) saveBtn.disabled = false;
     }
   });
+
+  // Submit Change Password Form
+  const pwdForm = byId("changePasswordForm");
+  if (pwdForm) {
+    pwdForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const currentPassword = byId("currentPassword").value;
+      const newPassword = byId("newPassword").value;
+      const confirmNewPassword = byId("confirmNewPassword").value;
+      const msg = byId("passwordMessage");
+      const submitBtn = byId("changePasswordBtn");
+
+      if (newPassword !== confirmNewPassword) {
+        if (msg) {
+          msg.style.display = "block";
+          msg.className = "status-message error";
+          msg.textContent = "New passwords do not match.";
+        }
+        return;
+      }
+
+      if (submitBtn) submitBtn.disabled = true;
+      if (msg) {
+        msg.style.display = "block";
+        msg.className = "status-message info";
+        msg.textContent = "Updating password...";
+      }
+
+      try {
+        const result = await fetchJson(`${API_BASE}/user/change-password`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token
+          },
+          body: JSON.stringify({ currentPassword, newPassword })
+        });
+
+        pwdForm.reset();
+        if (msg) {
+          msg.className = "status-message success";
+          msg.textContent = result.message || "Password updated successfully!";
+          setTimeout(() => { msg.style.display = "none"; }, 4000);
+        }
+        showToast("Password updated successfully.", "success");
+      } catch (error) {
+        if (msg) {
+          msg.className = "status-message error";
+          msg.textContent = error.message;
+        }
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  }
+
+  // Submit Delete Account Form
+  if (deleteForm) {
+    deleteForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const password = byId("deleteConfirmPassword").value;
+      const submitBtn = byId("confirmDeleteSubmitBtn");
+
+      if (submitBtn) submitBtn.disabled = true;
+      if (deleteError) {
+        deleteError.style.display = "block";
+        deleteError.className = "status-message info";
+        deleteError.textContent = "Deleting account...";
+      }
+
+      try {
+        await fetchJson(`${API_BASE}/user/account`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token
+          },
+          body: JSON.stringify({ password })
+        });
+
+        clearAuthSession();
+        alert("Your account has been permanently deleted.");
+        window.location.href = "index.html";
+      } catch (error) {
+        if (deleteError) {
+          deleteError.className = "status-message error";
+          deleteError.textContent = error.message;
+        }
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  }
+
+  // Load user's uploaded resources
+  const userResourceList = byId("userResourceList");
+  if (userResourceList) {
+    try {
+      const userResources = await fetchJson(`${API_BASE}/user/resources`, {
+        headers: { Authorization: token }
+      });
+
+      if (!Array.isArray(userResources) || userResources.length === 0) {
+        userResourceList.innerHTML = `<li class="empty-state">No uploaded documents yet. Share notes from the <a href="upload.html" style="font-weight: 700;">Upload page</a>!</li>`;
+      } else {
+        userResourceList.innerHTML = "";
+        userResources.forEach((item) => {
+          userResourceList.appendChild(
+            createResourceCard(item, {
+              allowSave: false,
+              allowDownload: true,
+              openLabel: "Preview",
+              preferViewer: true
+            })
+          );
+        });
+      }
+    } catch (e) {
+      userResourceList.innerHTML = `<li class="empty-state">Unable to load uploaded files.</li>`;
+    }
+  }
 }
 
 function getSunSvg() {
@@ -2174,41 +2467,280 @@ function getMoonSvg() {
 function initTheme() {
   const savedTheme = localStorage.getItem("theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
   document.documentElement.dataset.theme = savedTheme;
+}
 
-  document.querySelectorAll(".nav-links").forEach((nav) => {
-    if (nav.querySelector("[data-theme-toggle]")) return;
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "theme-toggle-btn";
-    button.dataset.themeToggle = "true";
-    button.setAttribute("aria-label", "Toggle color theme");
-    button.title = savedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode";
-    button.innerHTML = savedTheme === "dark" ? getSunSvg() : getMoonSvg();
-    button.addEventListener("click", () => {
-      const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-      document.documentElement.dataset.theme = next;
-      localStorage.setItem("theme", next);
-      button.innerHTML = next === "dark" ? getSunSvg() : getMoonSvg();
-      button.title = next === "dark" ? "Switch to light mode" : "Switch to dark mode";
-    });
-    nav.appendChild(button);
+function updateThemeToggleButtons() {
+  const currentTheme = document.documentElement.dataset.theme || "light";
+  document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+    button.innerHTML = currentTheme === "dark" ? getSunSvg() : getMoonSvg();
+    button.title = currentTheme === "dark" ? "Switch to light mode" : "Switch to dark mode";
   });
 }
 
-function initNavEnhancements() {
-  document.querySelectorAll(".nav-links").forEach((nav) => {
-    if (token && !nav.querySelector("a[href='profile.html']")) {
-      const link = document.createElement("a");
-      link.href = "profile.html";
-      link.textContent = "Profile";
-      nav.insertBefore(link, nav.querySelector("[data-auth-action='logout']") || null);
+function toggleColorTheme() {
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem("theme", next);
+  updateThemeToggleButtons();
+}
+
+function updateSidebarUserState() {
+  const userCard = byId("sidebarUserCard");
+  const userName = byId("sidebarUserName");
+  const userEmail = byId("sidebarUserEmail");
+  const userRole = byId("sidebarUserRole");
+  const userAvatar = byId("sidebarUserAvatar");
+
+  const isLoggedIn = Boolean(token);
+  if (userCard) {
+    userCard.style.display = isLoggedIn ? "flex" : "none";
+  }
+
+  if (isLoggedIn && state.currentUser) {
+    if (userName) userName.textContent = state.currentUser.name || "Student User";
+    if (userEmail) userEmail.textContent = state.currentUser.email || "";
+    if (userRole) {
+      userRole.textContent = String(state.currentUser.role || "student").toUpperCase();
+    }
+    if (userAvatar) {
+      const initial = (state.currentUser.name || "U").trim().charAt(0).toUpperCase();
+      userAvatar.textContent = initial;
+      if (state.currentUser.avatarColor) {
+        userAvatar.style.backgroundColor = state.currentUser.avatarColor;
+      }
+    }
+  }
+}
+
+function initSidebarNav() {
+  // 1. Ensure Header Actions (Theme Toggle + Hamburger) on every .app-header
+  document.querySelectorAll(".app-header").forEach((header) => {
+    let actions = header.querySelector(".header-actions");
+    if (!actions) {
+      actions = document.createElement("div");
+      actions.className = "header-actions";
+
+      // Theme toggle button in header
+      const themeBtn = document.createElement("button");
+      themeBtn.type = "button";
+      themeBtn.className = "theme-toggle-btn";
+      themeBtn.dataset.themeToggle = "true";
+      themeBtn.setAttribute("aria-label", "Toggle color theme");
+      themeBtn.innerHTML = document.documentElement.dataset.theme === "dark" ? getSunSvg() : getMoonSvg();
+      themeBtn.addEventListener("click", toggleColorTheme);
+      actions.appendChild(themeBtn);
+
+      // Hamburger button in header
+      const hamburgerBtn = document.createElement("button");
+      hamburgerBtn.type = "button";
+      hamburgerBtn.className = "hamburger-btn";
+      hamburgerBtn.id = "sidebarToggleBtn";
+      hamburgerBtn.setAttribute("aria-label", "Open navigation menu");
+      hamburgerBtn.title = "Open menu";
+      hamburgerBtn.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+        <span class="hamburger-label">Menu</span>
+      `;
+      hamburgerBtn.addEventListener("click", openSidebar);
+      actions.appendChild(hamburgerBtn);
+
+      header.appendChild(actions);
     }
   });
+
+  // 2. Inject Sidebar Drawer into DOM (if not already present)
+  if (!byId("sidebarDrawer")) {
+    const backdrop = document.createElement("div");
+    backdrop.className = "sidebar-backdrop";
+    backdrop.id = "sidebarBackdrop";
+    backdrop.addEventListener("click", closeSidebar);
+    document.body.appendChild(backdrop);
+
+    const drawer = document.createElement("aside");
+    drawer.className = "sidebar-drawer";
+    drawer.id = "sidebarDrawer";
+    drawer.setAttribute("aria-label", "Main Navigation");
+
+    drawer.innerHTML = `
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <span class="brand-icon">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+          </span>
+          <div>
+            <strong class="sidebar-title">Student Resource Finder</strong>
+            <span class="sidebar-badge">Academic Workspace</span>
+          </div>
+        </div>
+        <button type="button" class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close navigation" title="Close menu">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="sidebar-user-card auth-logged-in" id="sidebarUserCard" style="display: none;">
+        <div class="sidebar-user-avatar" id="sidebarUserAvatar">U</div>
+        <div class="sidebar-user-meta">
+          <span class="sidebar-user-name" id="sidebarUserName">Student User</span>
+          <span class="sidebar-user-email" id="sidebarUserEmail">student@example.edu</span>
+        </div>
+        <span class="sidebar-user-role" id="sidebarUserRole">STUDENT</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="sidebar-section-title">Navigation</div>
+        <ul class="sidebar-menu">
+          <li>
+            <a href="index.html" class="sidebar-item" data-path="index.html">
+              <span class="sidebar-item-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+              </span>
+              <span class="sidebar-item-text">Home</span>
+            </a>
+          </li>
+          <li class="auth-logged-in">
+            <a href="search.html" class="sidebar-item" data-path="search.html">
+              <span class="sidebar-item-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              </span>
+              <span class="sidebar-item-text">Search</span>
+            </a>
+          </li>
+          <li class="auth-logged-in">
+            <a href="library.html" class="sidebar-item" data-path="library.html">
+              <span class="sidebar-item-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+              </span>
+              <span class="sidebar-item-text">Library</span>
+            </a>
+          </li>
+          <li class="auth-logged-in">
+            <a href="upload.html" class="sidebar-item" data-path="upload.html">
+              <span class="sidebar-item-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              </span>
+              <span class="sidebar-item-text">Upload</span>
+            </a>
+          </li>
+          <li class="auth-logged-in">
+            <a href="dashboard.html" class="sidebar-item" data-path="dashboard.html">
+              <span class="sidebar-item-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+              </span>
+              <span class="sidebar-item-text">Dashboard</span>
+            </a>
+          </li>
+          <li class="auth-logged-in">
+            <a href="profile.html" class="sidebar-item" data-path="profile.html">
+              <span class="sidebar-item-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              </span>
+              <span class="sidebar-item-text">Profile</span>
+            </a>
+          </li>
+          <li class="auth-logged-in">
+            <a href="admin.html" class="sidebar-item" data-path="admin.html">
+              <span class="sidebar-item-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              </span>
+              <span class="sidebar-item-text">Admin</span>
+            </a>
+          </li>
+          <li class="auth-logged-out">
+            <a href="login.html" class="sidebar-item" data-path="login.html">
+              <span class="sidebar-item-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+              </span>
+              <span class="sidebar-item-text">Sign In</span>
+            </a>
+          </li>
+          <li class="auth-logged-out">
+            <a href="register.html" class="sidebar-item" data-path="register.html">
+              <span class="sidebar-item-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+              </span>
+              <span class="sidebar-item-text">Create Account</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button type="button" class="sidebar-logout-btn auth-logged-in" data-auth-action="logout">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>Log Out</span>
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(drawer);
+
+    byId("sidebarCloseBtn")?.addEventListener("click", closeSidebar);
+
+    // Close sidebar on item click
+    drawer.querySelectorAll(".sidebar-item").forEach((item) => {
+      item.addEventListener("click", () => {
+        closeSidebar();
+      });
+    });
+
+    // Mark active page in sidebar
+    const currentFile = window.location.pathname.split("/").pop() || "index.html";
+    drawer.querySelectorAll(".sidebar-item").forEach((item) => {
+      const targetPath = item.dataset.path;
+      if (
+        targetPath === currentFile ||
+        (currentFile === "" && targetPath === "index.html") ||
+        (currentFile === "results.html" && targetPath === "search.html")
+      ) {
+        item.setAttribute("aria-current", "page");
+      }
+    });
+  }
+
+  updateSidebarUserState();
 }
 
+function openSidebar() {
+  const drawer = byId("sidebarDrawer");
+  const backdrop = byId("sidebarBackdrop");
+  if (drawer) drawer.classList.add("is-open");
+  if (backdrop) backdrop.classList.add("is-open");
+  document.body.classList.add("sidebar-open");
+}
+
+function closeSidebar() {
+  const drawer = byId("sidebarDrawer");
+  const backdrop = byId("sidebarBackdrop");
+  if (drawer) drawer.classList.remove("is-open");
+  if (backdrop) backdrop.classList.remove("is-open");
+  document.body.classList.remove("sidebar-open");
+}
+
+// Close sidebar on Escape key
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    closeSidebar();
+  }
+});
+
 function initAuthControls() {
-  initNavEnhancements();
+  initSidebarNav();
   renderAuthControls();
+  updateSidebarUserState();
   document.querySelectorAll("[data-auth-action='logout']").forEach((button) => {
     button.addEventListener("click", () => {
       clearAuthSession();
@@ -2220,13 +2752,14 @@ function initAuthControls() {
 document.addEventListener("DOMContentLoaded", async () => {
   initializeLocalUserState();
   initTheme();
+  initSidebarNav();
   initAuthControls();
   await loadUserStateFromDatabase();
-  initNavEnhancements();
   renderAuthControls();
+  updateSidebarUserState();
   await initResourcePages();
   initDashboard();
   initAdmin();
   initViewer();
-  initProfile();
+  await initProfile();
 });

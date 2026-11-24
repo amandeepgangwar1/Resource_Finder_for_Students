@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Page Not Found (404) | Student Resource Finder</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .not-found-card {
+      max-width: 540px;
+      margin: 4rem auto;
+      text-align: center;
+      padding: 3rem 2rem;
+    }
+    .not-found-code {
+      font-size: 5rem;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+    .not-found-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+    }
+    .not-found-desc {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+    .not-found-actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <a class="brand-mark" href="index.html">
+      <span class="source-icon source-cls" style="width: 34px; height: 34px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+      </span>
+      <strong>Student Resource Finder</strong>
+    </a>
+    <nav class="nav-links" id="mainNav" aria-label="Primary navigation">
+      <a href="index.html">Home</a>
+      <a href="search.html">Search</a>
+      <a href="library.html">Library</a>
+      <a href="dashboard.html">Dashboard</a>
+    </nav>
+  </header>
+
+  <main style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem 1.25rem;">
+    <section class="surface not-found-card">
+      <div class="not-found-code">404</div>
+      <h1 class="not-found-title">Page or Resource Not Found</h1>
+      <p class="not-found-desc">
+        The study resource or page you requested could not be located. It may have been moved, deleted, or the address might be mistyped.
+      </p>
+      <div class="not-found-actions">
+        <a href="index.html" class="button">Return to Home</a>
+        <a href="search.html" class="button secondary">Search Resources</a>
+        <a href="library.html" class="button secondary">Browse Library</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>© 2026 Student Resource Finder Platform by Amandeep Gangwar</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

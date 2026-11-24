@@ -31,3 +31,5 @@ Thumbs.db
 # Database
 *.db
 *.sqlite
+
+.mongo-data/

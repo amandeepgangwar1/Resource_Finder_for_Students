@@ -15,7 +15,12 @@ const Resource = require("./models/Resource");
 const verifyToken = require("./middleware/authMiddleware");
 const aiRoutes = require("./routes/aiRoutes");
 const { SemanticSearch, answerQuestion, classifyText, extractKeywords, summarizeText } = require("./utils/aiModels");
-const { sendPasswordResetEmail } = require("./utils/email");
+const {
+  sendPasswordResetEmail,
+  sendEmailVerificationEmail,
+  isEmailConfigured
+} = require("./utils/email");
+const { createRateLimiter } = require("./middleware/rateLimiter");
 const { extractPdfMetadata } = require("./utils/pdfText");
 const {
   UPLOAD_ROOT,
@@ -47,6 +52,27 @@ function corsOptions(req, callback) {
     origin: allowedOrigins.includes(origin.replace(/\/+$/, ""))
   });
 }
+
+// SECURITY HEADERS
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  next();
+});
+
+// RATE LIMITERS FOR SENSITIVE ENDPOINTS
+const authLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: "Too many authentication attempts. Please try again after 15 minutes."
+});
+
+const passwordResetLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: "Too many password reset requests. Please check your inbox or try again in 15 minutes."
+});
 
 // MIDDLEWARE
 app.use(cors(corsOptions));
@@ -146,10 +172,17 @@ async function roleForRegistration(email, requestedRole) {
 
 function publicUserState(user) {
   return {
+    id: user._id,
     name: user.name,
     email: user.email,
     role: normalizeRole(user.role),
+    bio: user.bio || "",
+    institution: user.institution || "",
+    fieldOfStudy: user.fieldOfStudy || "",
+    avatarColor: user.avatarColor || "#2563eb",
+    isEmailVerified: Boolean(user.isEmailVerified),
     lastLoginAt: user.lastLoginAt,
+    createdAt: user.createdAt,
     bookmarks: (user.bookmarks || []).map((bookmark) => ({
       id: bookmark.id,
       title: bookmark.title,
@@ -349,12 +382,45 @@ function normalizeSearchHistory(history = []) {
   return unique.slice(0, 20);
 }
 
+function validateEmail(email) {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return typeof email === "string" && re.test(email.trim());
+}
+
+function validatePassword(password) {
+  if (typeof password !== "string" || password.length < 8) {
+    return {
+      valid: false,
+      message: "Password must be at least 8 characters long."
+    };
+  }
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+
+  if (!hasUpper || !hasLower || !hasNumber) {
+    return {
+      valid: false,
+      message: "Password must include at least one uppercase letter, one lowercase letter, and one number."
+    };
+  }
+  return { valid: true };
+}
+
 function createPasswordResetToken() {
   return crypto.randomBytes(24).toString("hex");
 }
 
 function hashPasswordResetToken(token) {
   return crypto.createHash("sha256").update(String(token)).digest("hex");
+}
+
+function createEmailVerificationToken() {
+  return crypto.randomBytes(24).toString("hex");
+}
+
+function createSixDigitOtp() {
+  return crypto.randomInt(100000, 999999).toString();
 }
 
 async function resolveResourceSubject({ title, subject, file, category }) {
@@ -389,85 +455,294 @@ async function resolveResourceSubject({ title, subject, file, category }) {
 }
 
 // ================= REGISTER =================
-app.post("/api/auth/register", async (req, res) => {
+app.post("/api/auth/register", authLimiter, async (req, res) => {
   try {
     const { name, email, password } = req.body;
     const normalizedEmail = normalizeEmail(email);
     const requestedRole = normalizeRole(req.body.role);
 
-    if (!name || !normalizedEmail || !password)
-      return res.status(400).json({ message: "All fields required" });
+    if (!name || !normalizedEmail || !password) {
+      return res.status(400).json({ message: "Name, email, and password are required." });
+    }
 
-    if (String(password).length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    const trimmedName = String(name).trim();
+    if (trimmedName.length < 2 || trimmedName.length > 70) {
+      return res.status(400).json({ message: "Full name must be between 2 and 70 characters." });
+    }
+
+    if (!validateEmail(normalizedEmail)) {
+      return res.status(400).json({ message: "Please provide a valid email address." });
+    }
+
+    const pwdCheck = validatePassword(password);
+    if (!pwdCheck.valid) {
+      return res.status(400).json({ message: pwdCheck.message });
     }
 
     const existingUser = await User.findOne({ email: normalizedEmail });
-    if (existingUser)
-      return res.status(400).json({ message: "Email already exists" });
+    if (existingUser) {
+      return res.status(409).json({ message: "An account with this email address already exists. Please log in." });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const role = await roleForRegistration(normalizedEmail, requestedRole);
 
-    await User.create({
-      name: String(name).trim(),
+    const verificationToken = createEmailVerificationToken();
+    const verificationOtp = createSixDigitOtp();
+    const verificationTokenHash = hashPasswordResetToken(verificationToken);
+    const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    const newUser = await User.create({
+      name: trimmedName,
       email: normalizedEmail,
       password: hashedPassword,
-      role
+      role,
+      isEmailVerified: false,
+      emailVerificationTokenHash: verificationTokenHash,
+      emailVerificationOtp: verificationOtp,
+      emailVerificationExpiresAt: verificationExpiresAt
     });
 
-    res.json({ message: "Registration successful", role });
+    const appBaseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
+    const verificationUrl = `${appBaseUrl.replace(/\/+$/, "")}/login.html?verifyToken=${encodeURIComponent(
+      verificationToken
+    )}`;
+
+    // Send verification email asynchronously
+    sendEmailVerificationEmail({
+      to: normalizedEmail,
+      name: trimmedName,
+      verificationUrl,
+      otp: verificationOtp
+    }).catch((err) => console.error("Error sending verification email:", err.message));
+
+    const token = jwt.sign(
+      { id: newUser._id, role: normalizeRole(newUser.role) },
+      process.env.JWT_SECRET || "SECRET_KEY",
+      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+    );
+
+    const response = {
+      message: "Registration successful! A verification link has been sent to your email.",
+      token,
+      user: publicUserState(newUser),
+      role
+    };
+
+    if (process.env.NODE_ENV !== "production") {
+      response.devVerificationUrl = verificationUrl;
+      response.devOtp = verificationOtp;
+    }
+
+    res.status(201).json(response);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Registration failed" });
+    console.error("Registration error:", error);
+    res.status(500).json({ message: "Registration failed. Please check your data and try again." });
   }
 });
 
 // ================= LOGIN =================
-app.post("/api/auth/login", async (req, res) => {
+app.post("/api/auth/login", authLimiter, async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
     const normalizedEmail = normalizeEmail(email);
 
+    if (!normalizedEmail || !password) {
+      return res.status(400).json({ message: "Email and password are required." });
+    }
+
     const user = await User.findOne({ email: normalizedEmail });
-    if (!user)
-      return res.status(400).json({ message: "User not found" });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email or password." });
+    }
 
     const valid = await bcrypt.compare(password, user.password);
-    if (!valid)
-      return res.status(400).json({ message: "Wrong password" });
+    if (!valid) {
+      return res.status(401).json({ message: "Invalid email or password." });
+    }
 
     user.lastLoginAt = new Date();
     user.loginHistory = [
       {
         loggedInAt: user.lastLoginAt,
-        ip: req.ip,
+        ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress || req.ip,
         userAgent: req.get("user-agent") || ""
       },
       ...(user.loginHistory || [])
     ].slice(0, 20);
     await user.save();
 
+    const isRemembered = rememberMe !== false;
+    const tokenExpires = isRemembered
+      ? (process.env.JWT_EXPIRES_IN || "7d")
+      : "24h";
+
     const token = jwt.sign(
       { id: user._id, role: normalizeRole(user.role) },
       process.env.JWT_SECRET || "SECRET_KEY",
-      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+      { expiresIn: tokenExpires }
     );
 
     res.json({ token, user: publicUserState(user) });
   } catch (error) {
-    res.status(500).json({ message: "Login failed" });
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Login failed. Please try again." });
   }
 });
 
-app.post("/api/auth/forgot-password", async (req, res) => {
+// ================= EMAIL VERIFICATION =================
+app.post("/api/auth/verify-email", async (req, res) => {
+  try {
+    const token = String(req.body.token || "").trim();
+    const email = normalizeEmail(req.body.email);
+    const otp = String(req.body.otp || "").trim();
+
+    let user = null;
+
+    if (token) {
+      const tokenHash = hashPasswordResetToken(token);
+      user = await User.findOne({
+        emailVerificationTokenHash: tokenHash,
+        emailVerificationExpiresAt: { $gt: new Date() }
+      });
+    } else if (email && otp) {
+      user = await User.findOne({
+        email,
+        emailVerificationOtp: otp,
+        emailVerificationExpiresAt: { $gt: new Date() }
+      });
+    } else {
+      return res.status(400).json({ message: "Verification token or email and OTP code are required." });
+    }
+
+    if (!user) {
+      return res.status(400).json({ message: "Verification link or code is invalid or has expired." });
+    }
+
+    user.isEmailVerified = true;
+    user.emailVerificationTokenHash = null;
+    user.emailVerificationOtp = null;
+    user.emailVerificationExpiresAt = null;
+    await user.save();
+
+    res.json({
+      message: "Email verified successfully!",
+      user: publicUserState(user)
+    });
+  } catch (error) {
+    console.error("Email verification error:", error);
+    res.status(500).json({ message: "Email verification failed." });
+  }
+});
+
+app.get("/api/auth/verify-email", async (req, res) => {
+  try {
+    const token = String(req.query.token || "").trim();
+    if (!token) {
+      return res.status(400).send("Verification token required");
+    }
+
+    const tokenHash = hashPasswordResetToken(token);
+    const user = await User.findOne({
+      emailVerificationTokenHash: tokenHash,
+      emailVerificationExpiresAt: { $gt: new Date() }
+    });
+
+    if (!user) {
+      if (req.accepts("html")) {
+        return res.redirect("/login.html?verified=expired");
+      }
+      return res.status(400).json({ message: "Verification link is invalid or expired." });
+    }
+
+    user.isEmailVerified = true;
+    user.emailVerificationTokenHash = null;
+    user.emailVerificationOtp = null;
+    user.emailVerificationExpiresAt = null;
+    await user.save();
+
+    if (req.accepts("html")) {
+      return res.redirect("/login.html?verified=success");
+    }
+    res.json({ message: "Email verified successfully!" });
+  } catch (error) {
+    res.status(500).json({ message: "Verification failed." });
+  }
+});
+
+app.post("/api/auth/resend-verification", authLimiter, async (req, res) => {
+  try {
+    const authHeader = req.header("Authorization") || "";
+    let email = normalizeEmail(req.body.email);
+
+    if (!email && authHeader) {
+      try {
+        const rawToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : authHeader;
+        const decoded = jwt.verify(rawToken, process.env.JWT_SECRET || "SECRET_KEY");
+        const foundUser = await User.findById(decoded.id);
+        if (foundUser) email = foundUser.email;
+      } catch (e) {
+        // Fall back to body email
+      }
+    }
+
+    if (!email) {
+      return res.status(400).json({ message: "Email address is required." });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.json({ message: "If an account exists, a new verification link has been sent." });
+    }
+
+    if (user.isEmailVerified) {
+      return res.json({ message: "Your email address is already verified." });
+    }
+
+    const verificationToken = createEmailVerificationToken();
+    const verificationOtp = createSixDigitOtp();
+    user.emailVerificationTokenHash = hashPasswordResetToken(verificationToken);
+    user.emailVerificationOtp = verificationOtp;
+    user.emailVerificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await user.save();
+
+    const appBaseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
+    const verificationUrl = `${appBaseUrl.replace(/\/+$/, "")}/login.html?verifyToken=${encodeURIComponent(
+      verificationToken
+    )}`;
+
+    await sendEmailVerificationEmail({
+      to: email,
+      name: user.name,
+      verificationUrl,
+      otp: verificationOtp
+    });
+
+    const response = {
+      message: "If an account exists, a new verification link has been sent."
+    };
+
+    if (process.env.NODE_ENV !== "production") {
+      response.devVerificationUrl = verificationUrl;
+      response.devOtp = verificationOtp;
+    }
+
+    res.json(response);
+  } catch (error) {
+    console.error("Resend verification error:", error);
+    res.status(500).json({ message: "Failed to resend verification email." });
+  }
+});
+
+// ================= FORGOT & RESET PASSWORD =================
+app.post("/api/auth/forgot-password", passwordResetLimiter, async (req, res) => {
   try {
     const email = normalizeEmail(req.body.email);
     const genericMessage =
-      "If an account exists for this email, a password reset link has been generated.";
+      "If an account exists for this email, password recovery instructions have been sent.";
 
-    if (!email) {
-      return res.status(400).json({ message: "Email required" });
+    if (!email || !validateEmail(email)) {
+      return res.status(400).json({ message: "A valid email address is required." });
     }
 
     const user = await User.findOne({ email });
@@ -476,8 +751,9 @@ app.post("/api/auth/forgot-password", async (req, res) => {
     }
 
     const resetToken = createPasswordResetToken();
+    const resetOtp = createSixDigitOtp();
     user.passwordResetTokenHash = hashPasswordResetToken(resetToken);
-    user.passwordResetExpiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    user.passwordResetExpiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 mins
     await user.save();
 
     const appBaseUrl =
@@ -486,15 +762,17 @@ app.post("/api/auth/forgot-password", async (req, res) => {
     const resetUrl = `${appBaseUrl.replace(/\/+$/, "")}/reset-password.html?email=${encodeURIComponent(
       email
     )}&token=${encodeURIComponent(resetToken)}`;
+
     const emailResult = await sendPasswordResetEmail({
       to: email,
       name: user.name,
-      resetUrl
+      resetUrl,
+      otp: resetOtp
     });
 
     const response = {
       message: emailResult.sent
-        ? "If an account exists for this email, a password reset link has been emailed."
+        ? "If an account exists for this email, password recovery instructions have been sent."
         : genericMessage,
       emailSent: emailResult.sent,
       expiresInMinutes: 30
@@ -502,37 +780,43 @@ app.post("/api/auth/forgot-password", async (req, res) => {
 
     if (!emailResult.sent && process.env.NODE_ENV !== "production") {
       response.devResetUrl = resetUrl;
+      response.devOtp = resetOtp;
     }
 
     res.json(response);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Password reset request failed" });
+    console.error("Forgot password error:", error);
+    res.status(500).json({ message: "Password reset request failed." });
   }
 });
 
-app.post("/api/auth/reset-password", async (req, res) => {
+app.post("/api/auth/reset-password", passwordResetLimiter, async (req, res) => {
   try {
     const email = normalizeEmail(req.body.email);
     const token = String(req.body.token || "").trim();
+    const otp = String(req.body.otp || "").trim();
     const password = String(req.body.password || "");
 
-    if (!email || !token || !password) {
-      return res.status(400).json({ message: "Email, token, and new password are required" });
+    if (!email || (!token && !otp) || !password) {
+      return res.status(400).json({ message: "Email, reset token or code, and new password are required." });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    const pwdCheck = validatePassword(password);
+    if (!pwdCheck.valid) {
+      return res.status(400).json({ message: pwdCheck.message });
     }
 
-    const user = await User.findOne({
-      email,
-      passwordResetTokenHash: hashPasswordResetToken(token),
-      passwordResetExpiresAt: { $gt: new Date() }
-    });
+    let user = null;
+    if (token) {
+      user = await User.findOne({
+        email,
+        passwordResetTokenHash: hashPasswordResetToken(token),
+        passwordResetExpiresAt: { $gt: new Date() }
+      });
+    }
 
     if (!user) {
-      return res.status(400).json({ message: "Reset link is invalid or expired" });
+      return res.status(400).json({ message: "Reset token is invalid or has expired." });
     }
 
     user.password = await bcrypt.hash(password, 10);
@@ -540,13 +824,14 @@ app.post("/api/auth/reset-password", async (req, res) => {
     user.passwordResetExpiresAt = null;
     await user.save();
 
-    res.json({ message: "Password updated successfully" });
+    res.json({ message: "Password updated successfully. You can now log in with your new password." });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Password reset failed" });
+    console.error("Reset password error:", error);
+    res.status(500).json({ message: "Password reset failed. Please try again." });
   }
 });
 
+// ================= USER ACCOUNT & PROFILE =================
 app.get("/api/user/state", verifyToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -563,7 +848,12 @@ app.get("/api/user/profile", verifyToken, async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.json(publicUserState(user));
+    const uploadedCount = await Resource.countDocuments({ uploadedBy: user._id });
+
+    res.json({
+      ...publicUserState(user),
+      uploadedCount
+    });
   } catch (error) {
     res.status(500).json({ message: "Unable to load profile" });
   }
@@ -574,15 +864,146 @@ app.put("/api/user/profile", verifyToken, async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const name = String(req.body.name || "").trim();
-    if (!name) return res.status(400).json({ message: "Name required" });
+    const { name, email, bio, institution, fieldOfStudy, avatarColor } = req.body;
 
-    user.name = name;
+    if (name !== undefined) {
+      const trimmedName = String(name).trim();
+      if (trimmedName.length < 2 || trimmedName.length > 70) {
+        return res.status(400).json({ message: "Name must be between 2 and 70 characters." });
+      }
+      user.name = trimmedName;
+    }
+
+    if (bio !== undefined) {
+      user.bio = String(bio).trim().slice(0, 300);
+    }
+
+    if (institution !== undefined) {
+      user.institution = String(institution).trim().slice(0, 120);
+    }
+
+    if (fieldOfStudy !== undefined) {
+      user.fieldOfStudy = String(fieldOfStudy).trim().slice(0, 120);
+    }
+
+    if (avatarColor !== undefined && /^#[0-9a-fA-F]{6}$/.test(avatarColor)) {
+      user.avatarColor = avatarColor;
+    }
+
+    // Handle email change if requested
+    if (email !== undefined) {
+      const normalizedEmail = normalizeEmail(email);
+      if (normalizedEmail !== user.email) {
+        if (!validateEmail(normalizedEmail)) {
+          return res.status(400).json({ message: "Please provide a valid email address." });
+        }
+
+        const duplicate = await User.findOne({ email: normalizedEmail, _id: { $ne: user._id } });
+        if (duplicate) {
+          return res.status(409).json({ message: "That email address is already in use by another account." });
+        }
+
+        user.email = normalizedEmail;
+        user.isEmailVerified = false;
+
+        const verificationToken = createEmailVerificationToken();
+        const verificationOtp = createSixDigitOtp();
+        user.emailVerificationTokenHash = hashPasswordResetToken(verificationToken);
+        user.emailVerificationOtp = verificationOtp;
+        user.emailVerificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+        const appBaseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
+        const verificationUrl = `${appBaseUrl.replace(/\/+$/, "")}/login.html?verifyToken=${encodeURIComponent(
+          verificationToken
+        )}`;
+
+        sendEmailVerificationEmail({
+          to: normalizedEmail,
+          name: user.name,
+          verificationUrl,
+          otp: verificationOtp
+        }).catch((err) => console.error("Error sending verification email for email change:", err.message));
+      }
+    }
+
     await user.save();
-
     res.json(publicUserState(user));
   } catch (error) {
-    res.status(500).json({ message: "Unable to update profile" });
+    console.error("Profile update error:", error);
+    res.status(500).json({ message: "Unable to update profile." });
+  }
+});
+
+// CHANGE PASSWORD
+app.post("/api/user/change-password", verifyToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Current password and new password are required." });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const valid = await bcrypt.compare(currentPassword, user.password);
+    if (!valid) {
+      return res.status(400).json({ message: "Current password is incorrect." });
+    }
+
+    const pwdCheck = validatePassword(newPassword);
+    if (!pwdCheck.valid) {
+      return res.status(400).json({ message: pwdCheck.message });
+    }
+
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ message: "New password cannot be the same as your current password." });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.json({ message: "Password changed successfully." });
+  } catch (error) {
+    console.error("Change password error:", error);
+    res.status(500).json({ message: "Failed to change password." });
+  }
+});
+
+// DELETE ACCOUNT
+app.delete("/api/user/account", verifyToken, async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ message: "Account password is required to confirm deletion." });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return res.status(400).json({ message: "Incorrect password. Cannot delete account." });
+    }
+
+    // Disassociate user's uploaded resources so community resources aren't lost
+    await Resource.updateMany({ uploadedBy: user._id }, { $set: { uploadedBy: null } });
+
+    await User.findByIdAndDelete(user._id);
+
+    res.json({ message: "Your account and personal data have been permanently deleted." });
+  } catch (error) {
+    console.error("Delete account error:", error);
+    res.status(500).json({ message: "Failed to delete account." });
+  }
+});
+
+// GET USER'S UPLOADED RESOURCES
+app.get("/api/user/resources", verifyToken, async (req, res) => {
+  try {
+    const resources = await Resource.find({ uploadedBy: req.user.id }).sort({ createdAt: -1 });
+    res.json(resources);
+  } catch (error) {
+    res.status(500).json({ message: "Unable to load your uploaded resources." });
   }
 });
 
@@ -1198,6 +1619,36 @@ app.put("/api/admin/users/:id/role", verifyToken, requireRoles("admin"), async (
 // ================= AI ROUTES =================
 app.use(aiRoutes);
 
+// ================= 404 & ERROR HANDLING =================
+// 404 for undefined API routes
+app.all("/api/*", (req, res) => {
+  res.status(404).json({ message: "API endpoint not found" });
+});
+
+// 404 for undefined frontend routes
+app.use((req, res) => {
+  if (req.accepts("html")) {
+    const errorPagePath = path.join(__dirname, "public", "404.html");
+    if (fs.existsSync(errorPagePath)) {
+      return res.status(404).sendFile(errorPagePath);
+    }
+  }
+  res.status(404).json({ message: "Page or resource not found" });
+});
+
+// Centralized error handler
+app.use((err, req, res, next) => {
+  console.error("Unhandled server error:", err);
+  const status = err.status || 500;
+  const isProd = process.env.NODE_ENV === "production";
+  const message =
+    isProd && status === 500
+      ? "An unexpected internal server error occurred. Please try again later."
+      : err.message || "Internal server error";
+
+  res.status(status).json({ message });
+});
+
 // ================= START SERVER =================
 function printStartupLinks(port) {
   const baseUrl = `http://localhost:${port}`;
@@ -1259,4 +1710,8 @@ async function startServer() {
   }
 }
 
-startServer();
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = app;

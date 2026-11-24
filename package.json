@@ -1,12 +1,12 @@
 {
-  "name": "new-folder",
+  "name": "student-resource-finder",
   "version": "1.0.0",
-  "description": "",
+  "description": "Full-stack academic platform to search, upload, and manage verified study notes and resources",
   "main": "server.js",
   "scripts": {
     "build": "npm run build:vercel",
     "build:vercel": "node scripts/build-vercel.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node tests/test-suite.js",
     "start": "node server.js",
     "dev": "node server.js"
   },
